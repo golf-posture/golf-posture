@@ -1,0 +1,29 @@
+# Model weights
+*.pth.tar
+*.pth
+*.pt
+
+# Data files
+*.pkl
+*.mp4
+*.jpg
+*.png
+*.tar
+
+# Preprocessed videos
+data/videos_160/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pixi/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
