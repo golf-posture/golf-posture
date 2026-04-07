@@ -76,3 +76,8 @@ pixi run <task-name>
 ```
 
 전체 설치 가이드는 https://pixi.prefix.dev/latest/installation 에서 확인할 수 있습니다 .
+
+
+## 모델 가중치 다운로드
+
+
