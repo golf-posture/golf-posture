@@ -2,11 +2,11 @@
 
 ## WSL 환경 설정
 
-이 프로젝트는 Windows에서 직접 실행하지 않고 `WSL2 + Ubuntu` 환경에서 실행하는 것을 기준으로 합니다.
+이 프로젝트는 `WSL2 + Ubuntu` 환경에서 실행하는 것을 기준으로 합니다.
 
 ### 1. WSL 설치
 
-관리자 권한 PowerShell에서 아래 명령을 실행합니다.
+PowerShell에서 아래 명령을 실행합니다.
 
 ```powershell
 wsl --install -d Ubuntu
