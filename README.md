@@ -22,6 +22,8 @@ PowerShell에서 아래 명령으로 Ubuntu가 WSL2로 설치되었는지 확인
 wsl -l -v
 ```
 
+WSL2 설치에 대한 전체 가이드는 https://learn.microsoft.com/en-us/windows/wsl/install 을 참조하세요 .
+
 ### 3. Ubuntu 기본 패키지 설치
 
 Ubuntu 터미널에서 아래 명령을 실행합니다.
@@ -81,8 +83,3 @@ pixi run <task-name>
 ```text
 \\wsl.localhost\Ubuntu\home\<사용자이름>\workspace
 ```
-
-## 참고
-
-- Microsoft WSL 설치 문서: https://learn.microsoft.com/en-us/windows/wsl/install
-- Pixi 설치 문서: https://pixi.prefix.dev/latest/installation
