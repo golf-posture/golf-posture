@@ -94,3 +94,69 @@ event_detection/
 ```
 
 > Colab 사용 시 Google Drive에 업로드 후 노트북에서 복사하여 사용합니다.
+
+## YouTube 영상으로 이벤트 감지 테스트
+
+YouTube 골프 스윙 영상을 다운로드하여 SwingNet 모델로 이벤트 감지를 테스트할 수 있습니다.
+
+### 1. 적합한 영상 조건
+
+| 조건 | 설명 |
+|------|------|
+| 화면 비율 | 가로(16:9) 영상 (세로/Shorts ❌) |
+| 인원 | 골퍼 1명만 나오는 영상 |
+| 앵글 | 정면(face-on) 또는 후방(down-the-line) |
+| 구간 | 한 번의 풀 스윙이 보이는 2~4초 구간 |
+
+> GolfDB 모델은 TV 중계 스타일의 가로 영상으로 학습되었기 때문에, 세로 영상이나 여러 앵글이 섞인 영상에서는 정확도가 떨어집니다.
+
+### 2. 영상 다운로드
+
+브라우저 확장 프로그램(Video Downloader 등)을 이용하여 **MP4** 형식으로 다운로드합니다.
+
+### 3. Google Drive 업로드
+
+다운로드한 영상을 Google Drive에 업로드합니다.
+
+```
+Google Drive/
+└── event_detection/
+    └── youtube/
+        └── 영상파일.mp4
+```
+
+### 4. Colab에서 실행
+
+```python
+# 셀 1: 환경 설정
+from google.colab import drive
+drive.mount('/content/drive')
+
+%cd /content
+!rm -rf golf-posture
+!git clone https://github.com/golf-posture/golf-posture.git
+
+# 모델 가중치 복사
+%cd /content/golf-posture/event_detection
+!cp /content/drive/MyDrive/event_detection/mobilenet_v2.pth.tar .
+!mkdir -p models
+!cp /content/drive/MyDrive/event_detection/models/swingnet_1800.pth.tar models/
+```
+
+```python
+# 셀 2: 영상 복사 및 이벤트 감지 실행
+!cp /content/drive/MyDrive/event_detection/youtube/영상파일.mp4 .
+!python test_youtube_colab.py --file 영상파일.mp4 --start 시작초 --end 끝초
+```
+
+- `--start` / `--end`: 스윙 구간의 시작/끝 시간(초)
+- 결과는 `output/영상파일_시작s-끝s/` 폴더에 저장됩니다
+
+### 실행 예시
+
+```python
+!cp /content/drive/MyDrive/event_detection/youtube/videoplayback.mp4 .
+!python test_youtube_colab.py --file videoplayback.mp4 --start 3.0 --end 7.0
+```
+
+8개 이벤트(Address → Finish) 프레임이 감지되어 이미지로 저장되고, `events_summary.png`로 요약 이미지가 출력됩니다.
