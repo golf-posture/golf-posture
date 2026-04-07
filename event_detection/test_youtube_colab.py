@@ -6,8 +6,8 @@ YouTube 영상에서 스윙 이벤트 감지하는 Colab용 스크립트
     !pip install yt-dlp
     !python test_youtube_colab.py --url "https://www.youtube.com/watch?v=..." --start 3.0 --end 7.0
 
-    # 로컬 파일 방식 (Drive에서 복사한 영상 등)
-    !python test_youtube_colab.py --url "https://www.youtube.com/watch?v=..." --file videoplayback.mp4 --start 3.0 --end 7.0
+    # 로컬 파일 방식 (Drive에서 복사한 영상 등, --url 불필요)
+    !python test_youtube_colab.py --file videoplayback.mp4 --start 3.0 --end 7.0
 
 흐름:
     1. 영상 준비 (로컬 파일 or YouTube 다운로드)
@@ -124,7 +124,7 @@ class SampleVideo(Dataset):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='YouTube 골프 스윙 이벤트 감지')
-    parser.add_argument('--url', required=True, help='YouTube URL')
+    parser.add_argument('--url', default=None, help='YouTube URL (yt-dlp 다운로드 시 필요)')
     parser.add_argument('--file', default=None, help='로컬 영상 파일 경로 (yt-dlp 대신 사용)')
     parser.add_argument('--start', type=float, required=True, help='스윙 시작 시간 (초)')
     parser.add_argument('--end', type=float, required=True, help='스윙 끝 시간 (초)')
@@ -132,8 +132,15 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output', default='output', help='결과 저장 폴더')
     args = parser.parse_args()
 
-    # --- 1. 작업 폴더 생성 ---
-    video_id = args.url.split("watch?v=")[-1].split("&")[0]
+    # --- 1. 입력 검증 ---
+    if not args.file and not args.url:
+        parser.error("--url 또는 --file 중 하나는 반드시 입력해야 합니다.")
+
+    # --- 2. 작업 폴더 생성 ---
+    if args.url:
+        video_id = args.url.split("watch?v=")[-1].split("&")[0]
+    else:
+        video_id = os.path.splitext(os.path.basename(args.file))[0]
     folder_name = f"{video_id}_{args.start}s-{args.end}s"
     output_dir = os.path.join(args.output, folder_name)
     os.makedirs(output_dir, exist_ok=True)
