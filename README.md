@@ -75,9 +75,22 @@ pixi install
 pixi run <task-name>
 ```
 
-전체 설치 가이드는 https://pixi.prefix.dev/latest/installation 에서 확인할 수 있습니다 .
-
+전체 설치 가이드는 https://pixi.prefix.dev/latest/installation 에서 확인할 수 있습니다.
 
 ## 모델 가중치 다운로드
 
+이벤트 감지 실행을 위해 아래 파일을 다운로드하여 지정된 위치에 배치합니다. (git에 포함되지 않음)
 
+| 파일 | 다운로드 | 배치 위치 |
+|------|----------|----------|
+| MobileNetV2 사전학습 가중치 | [mobilenet_v2.pth.tar](https://github.com/tonylins/pytorch-mobilenet-v2) | `event_detection/` |
+| SwingNet 학습 완료 가중치 | [swingnet_1800.pth.tar](https://drive.google.com/file/d/1MBIDwHSM8OKRbxS8YfyRLnUBAdt0nupW/view?usp=sharing) | `event_detection/models/` |
+
+```
+event_detection/
+├── mobilenet_v2.pth.tar        ← 여기
+├── models/
+│     └── swingnet_1800.pth.tar ← 여기
+```
+
+> Colab 사용 시 Google Drive에 업로드 후 노트북에서 복사하여 사용합니다.
