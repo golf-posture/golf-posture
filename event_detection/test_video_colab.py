@@ -74,7 +74,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     seq_length = args.seq_length
 
-    os.makedirs(args.output, exist_ok=True)
+    video_name = os.path.splitext(os.path.basename(args.path))[0]
+    output_dir = os.path.join(args.output, video_name)
+    os.makedirs(output_dir, exist_ok=True)
 
     print('Preparing video: {}'.format(args.path))
 
@@ -140,7 +142,7 @@ if __name__ == '__main__':
 
         # 이미지 파일로 저장
         filename = f"{i}_{event_names[i].replace(' ', '_')}_f{e}.jpg"
-        cv2.imwrite(os.path.join(args.output, filename), img)
+        cv2.imwrite(os.path.join(output_dir, filename), img)
         print(f"  Saved: {filename}")
 
         # matplotlib으로 표시
@@ -152,6 +154,6 @@ if __name__ == '__main__':
 
     plt.suptitle('Golf Swing Event Detection Results', fontsize=14, fontweight='bold')
     plt.tight_layout()
-    plt.savefig(os.path.join(args.output, 'events_summary.png'), dpi=150, bbox_inches='tight')
+    plt.savefig(os.path.join(output_dir, 'events_summary.png'), dpi=150, bbox_inches='tight')
     plt.show()
-    print(f"\nResults saved to '{args.output}/' folder")
+    print(f"\nResults saved to '{output_dir}/' folder")
