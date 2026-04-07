@@ -2,15 +2,21 @@
 YouTube 영상에서 스윙 이벤트 감지하는 Colab용 스크립트
 
 사용법:
+    # YouTube 다운로드 방식 (yt-dlp 필요)
     !pip install yt-dlp
     !python test_youtube_colab.py --url "https://www.youtube.com/watch?v=..." --start 3.0 --end 7.0
 
+    # 로컬 파일 방식 (Drive에서 복사한 영상 등)
+    !python test_youtube_colab.py --url "https://www.youtube.com/watch?v=..." --file videoplayback.mp4 --start 3.0 --end 7.0
+
 흐름:
-    1. YouTube 영상 다운로드 (yt-dlp)
+    1. 영상 준비 (로컬 파일 or YouTube 다운로드)
     2. 시작/끝 시간으로 트림 (ffmpeg)
     3. 160x160 리사이즈 + 패딩
     4. SwingNet 모델로 이벤트 감지
     5. 결과 이미지 저장 + matplotlib 출력
+
+출력 폴더: output/{youtube_id}_{start}s-{end}s/
 """
 
 import argparse
@@ -119,6 +125,7 @@ class SampleVideo(Dataset):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='YouTube 골프 스윙 이벤트 감지')
     parser.add_argument('--url', required=True, help='YouTube URL')
+    parser.add_argument('--file', default=None, help='로컬 영상 파일 경로 (yt-dlp 대신 사용)')
     parser.add_argument('--start', type=float, required=True, help='스윙 시작 시간 (초)')
     parser.add_argument('--end', type=float, required=True, help='스윙 끝 시간 (초)')
     parser.add_argument('--seq-length', type=int, default=64, help='모델 입력 프레임 수')
@@ -127,17 +134,26 @@ if __name__ == '__main__':
 
     # --- 1. 작업 폴더 생성 ---
     video_id = args.url.split("watch?v=")[-1].split("&")[0]
-    output_dir = os.path.join(args.output, video_id)
+    folder_name = f"{video_id}_{args.start}s-{args.end}s"
+    output_dir = os.path.join(args.output, folder_name)
     os.makedirs(output_dir, exist_ok=True)
 
-    raw_path = os.path.join(output_dir, "raw.mp4")
     trimmed_path = os.path.join(output_dir, "trimmed.mp4")
 
-    # --- 2. 다운로드 ---
-    if not os.path.exists(raw_path):
-        download_video(args.url, raw_path)
+    # --- 2. 영상 준비 (로컬 파일 or YouTube 다운로드) ---
+    if args.file:
+        # 로컬 파일 사용 (Drive에서 복사한 영상 등)
+        if not os.path.exists(args.file):
+            raise FileNotFoundError(f"파일을 찾을 수 없습니다: {args.file}")
+        print(f"Using local file: {args.file}")
+        raw_path = args.file
     else:
-        print(f"이미 다운로드됨: {raw_path}")
+        # YouTube 다운로드
+        raw_path = os.path.join(output_dir, "raw.mp4")
+        if not os.path.exists(raw_path):
+            download_video(args.url, raw_path)
+        else:
+            print(f"이미 다운로드됨: {raw_path}")
 
     # --- 3. 트림 ---
     trim_video(raw_path, trimmed_path, args.start, args.end)
