@@ -30,3 +30,14 @@ Thumbs.db
 # pixi environments
 .pixi/*
 !.pixi/config.toml
+
+# Pose analysis generated artifacts
+pose_analysis/models/*.task
+pose_analysis/pose_landmarks_sample.csv
+pose_analysis/debug_overlays/
+
+# Raw downloaded videos and download logs
+data_raw/
+
+# Pipeline outputs
+outputs/

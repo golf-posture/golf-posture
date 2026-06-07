@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
+from pathlib import Path
 from MobileNetV2 import MobileNetV2
 
 
@@ -14,7 +15,8 @@ class EventDetector(nn.Module):
         self.dropout = dropout
 
         net = MobileNetV2(width_mult=width_mult)
-        state_dict_mobilenet = torch.load('mobilenet_v2.pth.tar')
+        mobilenet_path = Path(__file__).resolve().parent / 'mobilenet_v2.pth.tar'
+        state_dict_mobilenet = torch.load(mobilenet_path, map_location='cpu')
         if pretrain:
             net.load_state_dict(state_dict_mobilenet)
 
@@ -29,17 +31,18 @@ class EventDetector(nn.Module):
         if self.dropout:
             self.drop = nn.Dropout(0.5)
 
-    def init_hidden(self, batch_size):
+    def init_hidden(self, batch_size, device=None):
+        device = device or next(self.parameters()).device
         if self.bidirectional:
-            return (Variable(torch.zeros(2*self.lstm_layers, batch_size, self.lstm_hidden).cuda(), requires_grad=True),
-                    Variable(torch.zeros(2*self.lstm_layers, batch_size, self.lstm_hidden).cuda(), requires_grad=True))
+            return (Variable(torch.zeros(2*self.lstm_layers, batch_size, self.lstm_hidden, device=device), requires_grad=True),
+                    Variable(torch.zeros(2*self.lstm_layers, batch_size, self.lstm_hidden, device=device), requires_grad=True))
         else:
-            return (Variable(torch.zeros(self.lstm_layers, batch_size, self.lstm_hidden).cuda(), requires_grad=True),
-                    Variable(torch.zeros(self.lstm_layers, batch_size, self.lstm_hidden).cuda(), requires_grad=True))
+            return (Variable(torch.zeros(self.lstm_layers, batch_size, self.lstm_hidden, device=device), requires_grad=True),
+                    Variable(torch.zeros(self.lstm_layers, batch_size, self.lstm_hidden, device=device), requires_grad=True))
 
     def forward(self, x, lengths=None):
         batch_size, timesteps, C, H, W = x.size()
-        self.hidden = self.init_hidden(batch_size)
+        self.hidden = self.init_hidden(batch_size, x.device)
 
         # CNN forward
         c_in = x.view(batch_size * timesteps, C, H, W)
@@ -55,6 +58,5 @@ class EventDetector(nn.Module):
         out = out.view(batch_size*timesteps,9)
 
         return out
-
 
 

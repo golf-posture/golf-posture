@@ -1,0 +1,41 @@
+event_index,event_name,feature_name,stat_type,mean,std,median,iqr,n,total,detection_rate,missing_count,reliability,feedback_strength,reliability_reason
+0,Address,trail_elbow_angle,linear_degrees,169.30299093785527,10.19047596502659,170.5910365158881,9.28474517629823,341,342,0.9970760233918129,1,medium,normal,moderate dispersion or detection rate
+0,Address,lead_elbow_angle,linear_degrees,172.63884915210426,14.493639539844974,175.19257899145606,6.021948993119025,336,342,0.9824561403508771,6,medium,normal,moderate dispersion or detection rate
+0,Address,shoulder_tilt,circular_degrees,-168.7029297332608,14.828187571464625,-168.7029297332608,4.941276020747701,342,342,1.0,0,medium,normal,moderate dispersion or detection rate
+0,Address,hip_tilt,circular_degrees,-175.47588551802897,11.796645188495397,-175.47588551802897,4.052469529718685,342,342,1.0,0,medium,normal,moderate dispersion or detection rate
+0,Address,spine_tilt,linear_degrees,3.1255177759704083,4.411759663197209,2.861696443898568,5.198308126818207,342,342,1.0,0,high,strong,low dispersion and high detection rate
+1,Toe-up,trail_elbow_angle,linear_degrees,159.12075278691364,16.071053135562845,161.7744463094511,11.110394390855987,284,342,0.8304093567251462,58,medium,normal,moderate dispersion or detection rate
+1,Toe-up,lead_elbow_angle,linear_degrees,166.8936481656903,12.325524775371768,169.67485421842193,10.386326918708818,331,342,0.9678362573099415,11,medium,normal,moderate dispersion or detection rate
+1,Toe-up,shoulder_tilt,circular_degrees,167.0471326944699,25.2357638039796,167.0471326944699,10.126622112446924,338,342,0.9883040935672515,4,low,reference,high dispersion or low detection rate
+1,Toe-up,hip_tilt,circular_degrees,-179.95095938807214,24.893956193730094,-179.95095938807214,3.514808967046612,338,342,0.9883040935672515,4,low,reference,high dispersion or low detection rate
+1,Toe-up,spine_tilt,linear_degrees,6.855841335750911,4.893357001751972,7.379753769656231,4.686196053673779,338,342,0.9883040935672515,4,high,strong,low dispersion and high detection rate
+2,Mid-backswing,trail_elbow_angle,linear_degrees,140.93019780910615,24.80228886399788,140.84543000051747,25.481674752558916,128,342,0.3742690058479532,214,low,reference,high dispersion or low detection rate
+2,Mid-backswing,lead_elbow_angle,linear_degrees,143.6970479929508,20.337643915662444,148.3657666138944,14.292469946889014,328,342,0.9590643274853801,14,low,reference,high dispersion or low detection rate
+2,Mid-backswing,shoulder_tilt,circular_degrees,161.58160663154834,28.838233129384303,161.58160663154834,20.177104944962245,336,342,0.9824561403508771,6,low,reference,high dispersion or low detection rate
+2,Mid-backswing,hip_tilt,circular_degrees,179.3620429978936,18.32781314672547,179.3620429978936,4.208611360194126,336,342,0.9824561403508771,6,medium,normal,moderate dispersion or detection rate
+2,Mid-backswing,spine_tilt,linear_degrees,6.945178267554201,5.337032218996148,7.253463437450949,6.02174107061391,336,342,0.9824561403508771,6,high,strong,low dispersion and high detection rate
+3,Top,trail_elbow_angle,linear_degrees,135.86289529156582,23.867334295326504,138.86856880490652,26.17567781318803,130,342,0.38011695906432746,212,low,reference,high dispersion or low detection rate
+3,Top,lead_elbow_angle,linear_degrees,110.69153946912314,31.13097533018372,111.81830136089583,33.94891504183795,323,342,0.9444444444444444,19,low,reference,high dispersion or low detection rate
+3,Top,shoulder_tilt,circular_degrees,175.27774241008595,34.365788514435806,175.27774241008595,12.687228937411817,341,342,0.9970760233918129,1,low,reference,high dispersion or low detection rate
+3,Top,hip_tilt,circular_degrees,-179.07226277057188,26.7221531854899,-179.07226277057188,4.562995734574173,341,342,0.9970760233918129,1,low,reference,high dispersion or low detection rate
+3,Top,spine_tilt,linear_degrees,7.1247768737583135,5.387154620577959,7.155666945657344,6.6547440610927815,341,342,0.9970760233918129,1,high,strong,low dispersion and high detection rate
+4,Mid-downswing,trail_elbow_angle,linear_degrees,105.54249078996646,31.137207862757567,108.96112011546433,37.127112961420295,148,342,0.4327485380116959,194,low,reference,high dispersion or low detection rate
+4,Mid-downswing,lead_elbow_angle,linear_degrees,140.61615238711914,18.803170116167795,143.66870901337953,14.790730069679228,330,342,0.9649122807017544,12,medium,normal,moderate dispersion or detection rate
+4,Mid-downswing,shoulder_tilt,circular_degrees,176.8899801458015,13.752218481088732,176.8899801458015,13.165821983660031,342,342,1.0,0,medium,normal,moderate dispersion or detection rate
+4,Mid-downswing,hip_tilt,circular_degrees,-178.38521335931682,9.821905670648412,-178.38521335931682,3.8934263852500166,342,342,1.0,0,high,strong,low dispersion and high detection rate
+4,Mid-downswing,spine_tilt,linear_degrees,8.114561928889545,5.009289239690949,8.220320965251368,5.41980880994374,342,342,1.0,0,high,strong,low dispersion and high detection rate
+5,Impact,trail_elbow_angle,linear_degrees,157.7327573247084,13.130108511365275,158.62624906191482,13.696305697877904,341,342,0.9970760233918129,1,medium,normal,moderate dispersion or detection rate
+5,Impact,lead_elbow_angle,linear_degrees,168.5784035121124,17.94075329783001,171.90859091419742,9.886320540080874,316,342,0.9239766081871345,26,medium,normal,moderate dispersion or detection rate
+5,Impact,shoulder_tilt,circular_degrees,-150.5554613734622,25.165418752600054,-150.5554613734622,11.6256539493111,341,342,0.9970760233918129,1,low,reference,high dispersion or low detection rate
+5,Impact,hip_tilt,circular_degrees,-173.0454129276804,30.26209896269885,-173.0454129276804,5.0386613756869,341,342,0.9970760233918129,1,low,reference,high dispersion or low detection rate
+5,Impact,spine_tilt,linear_degrees,16.507210981499988,7.216745220611125,17.19933421341541,6.713834552090523,341,342,0.9970760233918129,1,high,strong,low dispersion and high detection rate
+6,Mid-follow-through,trail_elbow_angle,linear_degrees,157.18913247027072,15.81535096551479,159.51228274642102,15.676301298125509,336,342,0.9824561403508771,6,medium,normal,moderate dispersion or detection rate
+6,Mid-follow-through,lead_elbow_angle,linear_degrees,158.95751899365237,24.287753732846916,163.08492141224266,13.597788694907536,298,342,0.8713450292397661,44,low,reference,high dispersion or low detection rate
+6,Mid-follow-through,shoulder_tilt,circular_degrees,-138.652190020221,16.941020930876007,-138.652190020221,15.048505776223799,342,342,1.0,0,medium,normal,moderate dispersion or detection rate
+6,Mid-follow-through,hip_tilt,circular_degrees,-170.63143054971212,13.242813145956662,-170.63143054971212,5.141671401141892,342,342,1.0,0,medium,normal,moderate dispersion or detection rate
+6,Mid-follow-through,spine_tilt,linear_degrees,17.551016825481803,7.750075363773296,18.19914246280155,8.665333726959302,342,342,1.0,0,high,strong,low dispersion and high detection rate
+7,Finish,trail_elbow_angle,linear_degrees,90.7182242458926,40.981045537934804,85.12618817810093,62.251141795201,268,342,0.783625730994152,74,low,reference,high dispersion or low detection rate
+7,Finish,lead_elbow_angle,linear_degrees,85.65260931591035,48.475876527911524,73.66697585197844,79.68020334672926,152,342,0.4444444444444444,190,low,reference,high dispersion or low detection rate
+7,Finish,shoulder_tilt,circular_degrees,166.9947690320819,83.8202234439759,166.9947690320819,172.48444918007,340,342,0.9941520467836257,2,low,reference,high dispersion or low detection rate
+7,Finish,hip_tilt,circular_degrees,178.5983554736199,75.92932648627672,178.5983554736199,14.186866790410505,340,342,0.9941520467836257,2,low,reference,high dispersion or low detection rate
+7,Finish,spine_tilt,linear_degrees,4.010505669593896,5.177919247772128,3.7605358347610536,6.969078835095517,340,342,0.9941520467836257,2,high,strong,low dispersion and high detection rate
