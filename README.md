@@ -4,6 +4,58 @@
 
 현재 MVP는 학습이 아니라 **inference 파이프라인**과 **프로 공통 feature 기반 피드백 기준 개선**에 초점을 둡니다.
 
+## 팀원 작업 폴더에서 재사용한 내용
+
+이 프로젝트는 현재 저장소만으로 새로 시작한 것이 아니라, 팀원이 먼저 작업한 로컬 실험 폴더의 산출물을 일부 재사용해 MVP 파이프라인으로 정리한 것입니다.
+
+팀원 작업 폴더:
+
+```text
+C:\Users\zzang\Desktop\workspace\Python\golf\src\golfdb-master
+```
+
+이 폴더는 git에 그대로 포함하지 않습니다. 대신 필요한 코드와 산출물만 현재 `golf-posture` 구조에 맞게 가져왔습니다.
+
+재사용한 내용은 다음과 같습니다.
+
+```text
+golfdb-master/models/swingnet_1800.pth.tar
+-> SwingNet 이벤트 검출용 학습 완료 checkpoint
+-> 현재 프로젝트에서는 event_detection/models/swingnet_1800.pth.tar 위치에 두고 사용
+-> 모델 파일은 용량 문제로 git에 포함하지 않음
+
+golfdb-master/models/mobilenet_v2.pth.tar
+-> SwingNet backbone 초기화용 MobileNetV2 pretrained weight
+-> 현재 프로젝트에서는 event_detection/mobilenet_v2.pth.tar 위치에 두고 사용
+-> 모델 파일은 git에 포함하지 않음
+
+golfdb-master/data/pro_angle_stats.json
+-> 팀원 Colab 실험에서 만든 프로 선수 angle mean/std 통계
+-> 현재 프로젝트의 data/pro_angle_stats.json으로 복사
+-> reliability stats가 없을 때 fallback 기준으로 사용
+
+golfdb-master/learning_video/golfdb_720p_slice/
+-> GolfDB 원본 YouTube 영상을 720p로 다시 받아 GolfDB annotation 구간에 맞춰 자른 342개 프로 스윙 slice 영상
+-> 현재 프로젝트의 data/pro_feature_raw.csv 생성에 사용
+-> 영상 파일은 git에 포함하지 않음
+
+golfdb-master/notebooks/colab_learn_stats.ipynb
+-> 342개 프로 영상에서 정답 기준 통계를 만드는 실험 흐름
+-> 현재 data/pro_angle_stats.json의 출처이며, reliability 재분석 방향의 기반
+
+golfdb-master/notebooks/colab_pose_feedback.ipynb
+-> 사용자 영상 feature를 프로 통계와 비교하고 skeleton/feedback 결과를 만드는 실험 흐름
+-> 현재 pipeline/run_analysis.py의 피드백 파이프라인으로 정리
+
+golfdb-master/src_pose/
+-> MediaPipe landmark 추출, angle feature 계산, 통계 로딩, 피드백 생성, 시각화 실험 코드
+-> 현재 MVP에서는 필요한 계산 방식만 pipeline/run_analysis.py와 pipeline/extract_pro_features.py에 최소 이식
+```
+
+주의할 점은, 342개 영상으로 만든 자세 피드백 기준은 딥러닝 모델을 새로 학습한 결과가 아니라 **프로 선수 feature의 통계 데이터**입니다. 즉 현재 자세 피드백은 `pro_angle_stats.json` 또는 `pro_feature_stats_reliability.json`의 평균/표준편차와 사용자의 각도 feature를 비교하는 방식입니다.
+
+또한 `golfdb-master/src_pose/visualization.py`에는 평균 skeleton 비교를 위한 `avg_landmarks` 개념이 있지만, 현재 `pro_angle_stats.json`에는 `avg_landmarks`가 없습니다. 따라서 이번 MVP에서는 평균 skeleton 비교가 아니라 angle feature 기반 피드백만 사용합니다.
+
 ## 프로젝트가 하는 일
 
 입력 영상 한 개를 다음 순서로 분석합니다.
