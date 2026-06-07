@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 import json
 import math
 import sys
@@ -90,8 +91,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--output",
-        default="outputs/analysis_result",
-        help="Output prefix. Writes <prefix>.json and <prefix>.txt.",
+        help=(
+            "Output directory or prefix. Defaults to outputs/<video_stem>/. "
+            "If the path matches the input video stem, files are grouped in that folder; "
+            "otherwise the legacy prefix style is used."
+        ),
     )
     parser.add_argument("--handedness", choices=["right", "left"], default="right")
     parser.add_argument(
@@ -108,23 +112,78 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def output_paths(output: str) -> tuple[Path, Path, Path, Path]:
-    base = Path(output)
-    if base.suffix.lower() == ".json":
-        json_path = base
-        txt_path = base.with_suffix(".txt")
-        frame_dir = base.with_suffix("").with_name(base.stem + "_frames")
-        skeleton_dir = base.with_suffix("").with_name(base.stem + "_skeletons")
+@dataclass(frozen=True)
+class OutputPaths:
+    json_path: Path
+    txt_path: Path
+    frame_dir: Path
+    skeleton_dir: Path
+    output_dir: Path
+    mode: str
+    report_prefix: str | None
+
+
+def output_paths(output: str | None, video_path: Path | None = None) -> OutputPaths:
+    video_stem = video_path.stem if video_path else "analysis"
+    if output is None:
+        output_dir = Path("outputs") / video_stem
+        json_path = output_dir / f"{video_stem}_result.json"
+        txt_path = output_dir / f"{video_stem}_summary.txt"
+        frame_dir = output_dir / "frames"
+        skeleton_dir = output_dir / "skeletons"
+        mode = "directory"
+        report_prefix = None
     else:
-        json_path = Path(str(base) + ".json")
-        txt_path = Path(str(base) + ".txt")
-        frame_dir = Path(str(base) + "_frames")
-        skeleton_dir = Path(str(base) + "_skeletons")
+        base = Path(output)
+        output_text = str(output)
+        use_directory = (
+            base.suffix.lower() == ""
+            and (
+                output_text.endswith(("/", "\\"))
+                or (base.exists() and base.is_dir())
+                or base.name == video_stem
+            )
+        )
+        if use_directory:
+            output_dir = base
+            stem = output_dir.name or video_stem
+            json_path = output_dir / f"{stem}_result.json"
+            txt_path = output_dir / f"{stem}_summary.txt"
+            frame_dir = output_dir / "frames"
+            skeleton_dir = output_dir / "skeletons"
+            mode = "directory"
+            report_prefix = None
+        elif base.suffix.lower() == ".json":
+            json_path = base
+            txt_path = base.with_suffix(".txt")
+            frame_dir = base.with_suffix("").with_name(base.stem + "_frames")
+            skeleton_dir = base.with_suffix("").with_name(base.stem + "_skeletons")
+            output_dir = json_path.parent
+            mode = "prefix"
+            report_prefix = base.stem
+        else:
+            json_path = Path(str(base) + ".json")
+            txt_path = Path(str(base) + ".txt")
+            frame_dir = Path(str(base) + "_frames")
+            skeleton_dir = Path(str(base) + "_skeletons")
+            output_dir = json_path.parent
+            mode = "prefix"
+            report_prefix = base.name
+
     json_path.parent.mkdir(parents=True, exist_ok=True)
     txt_path.parent.mkdir(parents=True, exist_ok=True)
     frame_dir.mkdir(parents=True, exist_ok=True)
     skeleton_dir.mkdir(parents=True, exist_ok=True)
-    return json_path, txt_path, frame_dir, skeleton_dir
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return OutputPaths(
+        json_path=json_path,
+        txt_path=txt_path,
+        frame_dir=frame_dir,
+        skeleton_dir=skeleton_dir,
+        output_dir=output_dir,
+        mode=mode,
+        report_prefix=report_prefix,
+    )
 
 
 def repo_root() -> Path:
@@ -829,6 +888,10 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         "reliability_stats_path": str(reliability_stats_path),
         "reference_skeletons_path": str(reference_skeletons_path),
         "reference_skeletons_available": False,
+        "output_mode": None,
+        "output_dir": None,
+        "json_result_path": None,
+        "text_summary_path": None,
         "events": {},
         "pose_backend_comparison": {
             "mediapipe": {"attempted": False, "pose_detected_events": 0, "notes": []},
@@ -879,7 +942,13 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         yolo_backend = init_backend("yolopose", result["pose_backend_comparison"]["yolopose"]["notes"])
 
     selected_counts = {"mediapipe": 0, "yolopose": 0}
-    _, _, frame_dir, skeleton_dir = output_paths(args.output)
+    paths = output_paths(args.output, video_path)
+    frame_dir = paths.frame_dir
+    skeleton_dir = paths.skeleton_dir
+    result["output_mode"] = paths.mode
+    result["output_dir"] = str(paths.output_dir)
+    result["json_result_path"] = str(paths.json_path)
+    result["text_summary_path"] = str(paths.txt_path)
     result["event_frame_dir"] = str(frame_dir)
     result["skeleton_comparison_dir"] = str(skeleton_dir)
 
@@ -981,11 +1050,24 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
 
 def main() -> int:
     args = parse_args()
-    json_path, txt_path, _, _ = output_paths(args.output)
+    paths = output_paths(args.output, Path(args.video))
     result, exit_code = run(args)
-    write_outputs(result, json_path, txt_path)
-    print(f"JSON result: {json_path}")
-    print(f"Text summary: {txt_path}")
+    write_outputs(result, paths.json_path, paths.txt_path)
+    print(f"JSON result: {paths.json_path}")
+    print(f"Text summary: {paths.txt_path}")
+    try:
+        from pipeline.generate_feedback_report import generate_feedback_report
+
+        report_paths = generate_feedback_report(
+            paths.json_path,
+            paths.output_dir,
+            filename_prefix=paths.report_prefix,
+        )
+        print(f"Feedback table: {report_paths['table_csv']}")
+        print(f"Korean feedback: {report_paths['feedback_ko']}")
+    except Exception as exc:
+        print(f"Feedback report generation failed: {type(exc).__name__}: {exc}")
+        exit_code = exit_code or 1
     return exit_code
 
 

@@ -198,7 +198,6 @@ swingnet_1800.pth.tar
 ```bash
 pixi run python -m pipeline.run_analysis \
   --video path/to/sample.mp4 \
-  --output outputs/sample_result \
   --handedness right \
   --pose-backend mediapipe
 ```
@@ -212,7 +211,7 @@ pixi run python -m pipeline.run_analysis \
   --pro-stats data/pro_feature_stats_reliability.json \
   --reliability-stats data/pro_feature_stats_reliability.json \
   --reference-skeletons data/pro_reference_skeletons.json \
-  --output outputs/sample_result \
+  --output outputs/sample \
   --handedness right \
   --pose-backend hybrid
 ```
@@ -222,7 +221,7 @@ checkpoint 없이 통합 테스트만 하는 경우:
 ```bash
 pixi run python -m pipeline.run_analysis \
   --video path/to/sample.mp4 \
-  --output outputs/sample_mock \
+  --output outputs/sample \
   --handedness right \
   --mock-events
 ```
@@ -231,17 +230,24 @@ pixi run python -m pipeline.run_analysis \
 
 ## 출력 결과
 
-`--output outputs/sample_result`로 실행하면 다음이 생성됩니다.
+`--output`을 생략하면 입력 영상 이름을 기준으로 `outputs/<video_stem>/` 폴더가 생성됩니다.
+예를 들어 `sample.mp4`를 분석하면 다음이 생성됩니다.
 
 ```text
-outputs/sample_result.json
-outputs/sample_result.txt
-outputs/sample_result_frames/
-outputs/sample_result_skeletons/
+outputs/sample/
+  sample_result.json
+  sample_summary.txt
+  feedback_table.csv
+  feedback_ko.txt
+  frames/
+  skeletons/
 ```
 
-`outputs/sample_result_frames/`에는 8개 이벤트 keyframe 이미지가 저장됩니다.
-`outputs/sample_result_skeletons/`에는 이벤트별 사용자/pro 기준 skeleton 비교 이미지가 저장됩니다. 왼쪽은 사용자 keyframe skeleton overlay이고, 오른쪽은 정규화된 사용자 skeleton과 프로 기준 skeleton을 함께 그린 비교 패널입니다.
+기존 prefix 방식도 유지됩니다. 예를 들어 `--output outputs/sample_result`처럼 영상 이름과 다른 prefix를 넘기면 `outputs/sample_result.json`, `outputs/sample_result_frames/` 형태로 저장됩니다.
+
+`frames/`에는 8개 이벤트 keyframe 이미지가 저장됩니다.
+`skeletons/`에는 이벤트별 사용자/pro 기준 skeleton 비교 이미지가 저장됩니다. 왼쪽은 사용자 keyframe skeleton overlay이고, 오른쪽은 정규화된 사용자 skeleton과 프로 기준 skeleton을 함께 그린 비교 패널입니다.
+`feedback_table.csv`는 8개 이벤트 x 5개 feature 평가표이고, `feedback_ko.txt`는 표와 핵심 한국어 피드백을 포함합니다.
 
 JSON에는 이벤트별로 다음 정보가 들어갑니다.
 
@@ -375,6 +381,12 @@ pipeline/compute_reliability_stats.py
 ```
 
 `pro_feature_raw.csv`를 읽어 event-feature별 통계를 계산합니다. circular angle 보정, detection_rate 계산, reliability 분류, 요약 파일 생성을 담당합니다.
+
+```text
+pipeline/generate_feedback_report.py
+```
+
+`pipeline/run_analysis.py`가 생성한 JSON을 구조적으로 읽어 `feedback_table.csv`와 `feedback_ko.txt`를 생성합니다. 전체 40개 feature는 표로 요약하고, 한국어 문장 피드백은 중요도 높은 항목과 low reliability 참고 지표만 선별해 출력합니다.
 
 ```text
 pipeline/build_reference_skeletons.py
@@ -577,6 +589,7 @@ outputs/
 pixi run python -m py_compile \
   pipeline/run_analysis.py \
   pipeline/build_reference_skeletons.py \
+  pipeline/generate_feedback_report.py \
   pipeline/extract_pro_features.py \
   pipeline/compute_reliability_stats.py
 ```
@@ -622,9 +635,17 @@ pixi run python -m pipeline.run_analysis \
   --pro-stats data\pro_feature_stats_reliability.json \
   --reliability-stats data\pro_feature_stats_reliability.json \
   --reference-skeletons data\pro_reference_skeletons.json \
-  --output outputs/sample_result \
+  --output outputs/sample \
   --handedness right \
   --pose-backend hybrid
+```
+
+JSON 결과에서 피드백 리포트만 다시 생성:
+
+```bash
+pixi run python -m pipeline.generate_feedback_report \
+  --analysis-json outputs\sample\sample_result.json \
+  --output-dir outputs\sample
 ```
 
 ## 개발 범위와 주의점
