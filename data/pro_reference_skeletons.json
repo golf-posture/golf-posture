@@ -1,0 +1,691 @@
+{
+  "metadata": {
+    "source_videos_dir": "C:\\Users\\zzang\\Desktop\\workspace\\Python\\golf\\src\\golfdb-master\\learning_video\\golfdb_720p_slice",
+    "labels_path": "event_detection\\data\\golfDB_labels.csv",
+    "feature_stats_path": "data\\pro_feature_stats_reliability.json",
+    "pose_backend": "mediapipe",
+    "handedness": "right",
+    "method": "feature_medoid_normalized_skeleton",
+    "method_reason": "MVP uses a representative real pro skeleton per event instead of a pure average skeleton.",
+    "processed_video_count": 342,
+    "event_names": [
+      "Address",
+      "Toe-up",
+      "Mid-backswing",
+      "Top",
+      "Mid-downswing",
+      "Impact",
+      "Mid-follow-through",
+      "Finish"
+    ],
+    "landmark_names": [
+      "NOSE",
+      "LEFT_SHOULDER",
+      "RIGHT_SHOULDER",
+      "LEFT_ELBOW",
+      "RIGHT_ELBOW",
+      "LEFT_WRIST",
+      "RIGHT_WRIST",
+      "LEFT_HIP",
+      "RIGHT_HIP",
+      "LEFT_KNEE",
+      "RIGHT_KNEE",
+      "LEFT_ANKLE",
+      "RIGHT_ANKLE"
+    ]
+  },
+  "events": {
+    "0": {
+      "event_name": "Address",
+      "method": "feature_medoid_normalized_skeleton",
+      "method_reason": "Uses an actual pro frame closest to event-level pro feature statistics, avoiding anatomically invalid averaged skeletons.",
+      "candidate_count": 342,
+      "source_video_id": 1191,
+      "source_video_path": "C:\\Users\\zzang\\Desktop\\workspace\\Python\\golf\\src\\golfdb-master\\learning_video\\golfdb_720p_slice\\1191.mp4",
+      "source_frame_index": 27,
+      "pose_backend": "mediapipe",
+      "selection_score": 0.004999812702921229,
+      "selection_feature_count": 5,
+      "landmarks": {
+        "NOSE": [
+          -0.02358111830070108,
+          -0.39018765926638566,
+          0.9999500513076782
+        ],
+        "LEFT_SHOULDER": [
+          0.11712348157104181,
+          -0.35514358521776307,
+          0.9999841451644897
+        ],
+        "RIGHT_SHOULDER": [
+          -0.152242602214776,
+          -0.3085107220813956,
+          0.9999297857284546
+        ],
+        "LEFT_ELBOW": [
+          0.09014736872994698,
+          -0.11396407004387973,
+          0.9915578365325928
+        ],
+        "RIGHT_ELBOW": [
+          -0.11014568214735117,
+          -0.07335237387826662,
+          0.9775427579879761
+        ],
+        "LEFT_WRIST": [
+          0.03843108468293188,
+          0.07619785180031981,
+          0.9889574646949768
+        ],
+        "RIGHT_WRIST": [
+          -0.036907810117331484,
+          0.11524265370324185,
+          0.9647943377494812
+        ],
+        "LEFT_HIP": [
+          0.07839925955027932,
+          -0.005320851713069952,
+          0.9998142123222351
+        ],
+        "RIGHT_HIP": [
+          -0.07839925955027932,
+          0.005320851713069952,
+          0.9998087286949158
+        ],
+        "LEFT_KNEE": [
+          0.13711107990454646,
+          0.31856087659600973,
+          0.9731696844100952
+        ],
+        "RIGHT_KNEE": [
+          -0.15059393836950005,
+          0.2879158427474389,
+          0.9735512137413025
+        ],
+        "LEFT_ANKLE": [
+          0.15312151267114912,
+          0.6098123407336143,
+          0.9698847532272339
+        ],
+        "RIGHT_ANKLE": [
+          -0.18815801317860256,
+          0.6030728423096454,
+          0.9689404964447021
+        ]
+      },
+      "features": {
+        "trail_elbow_angle": 168.92642370713952,
+        "lead_elbow_angle": 171.1679004341835,
+        "shoulder_tilt": -170.17826034729742,
+        "hip_tilt": -176.1173669648492,
+        "spine_tilt": 3.029140761801429
+      }
+    },
+    "1": {
+      "event_name": "Toe-up",
+      "method": "feature_medoid_normalized_skeleton",
+      "method_reason": "Uses an actual pro frame closest to event-level pro feature statistics, avoiding anatomically invalid averaged skeletons.",
+      "candidate_count": 338,
+      "source_video_id": 387,
+      "source_video_path": "C:\\Users\\zzang\\Desktop\\workspace\\Python\\golf\\src\\golfdb-master\\learning_video\\golfdb_720p_slice\\387.mp4",
+      "source_frame_index": 120,
+      "pose_backend": "mediapipe",
+      "selection_score": 0.013042017387571273,
+      "selection_feature_count": 5,
+      "landmarks": {
+        "NOSE": [
+          -0.0918082934160319,
+          -0.44981775704272753,
+          0.9993847608566284
+        ],
+        "LEFT_SHOULDER": [
+          0.055199646192510575,
+          -0.3371327714187081,
+          0.9990196228027344
+        ],
+        "RIGHT_SHOULDER": [
+          -0.14416326653302708,
+          -0.3642179797774193,
+          0.9998615980148315
+        ],
+        "LEFT_ELBOW": [
+          -0.09968112237206138,
+          -0.15952050252984046,
+          0.9728748798370361
+        ],
+        "RIGHT_ELBOW": [
+          -0.20489309374942885,
+          -0.18518778117262838,
+          0.8606030941009521
+        ],
+        "LEFT_WRIST": [
+          -0.23612167021701883,
+          -0.057361141275935425,
+          0.9364657998085022
+        ],
+        "RIGHT_WRIST": [
+          -0.3191431505510429,
+          -0.04134512716371473,
+          0.8600423336029053
+        ],
+        "LEFT_HIP": [
+          0.07378964318937746,
+          0.0021210729303036543,
+          0.9992208480834961
+        ],
+        "RIGHT_HIP": [
+          -0.07378964318937746,
+          -0.0021210729303036543,
+          0.9997468590736389
+        ],
+        "LEFT_KNEE": [
+          0.16377861500176782,
+          0.2747300868014016,
+          0.9931185245513916
+        ],
+        "RIGHT_KNEE": [
+          -0.13979860174790326,
+          0.26389756208121856,
+          0.9961309432983398
+        ],
+        "LEFT_ANKLE": [
+          0.2032328630527697,
+          0.5367329938194092,
+          0.9962760210037231
+        ],
+        "RIGHT_ANKLE": [
+          -0.1756955518839256,
+          0.5501822429572725,
+          0.9972049593925476
+        ]
+      },
+      "features": {
+        "trail_elbow_angle": 160.2786360084124,
+        "lead_elbow_angle": 167.91285338337008,
+        "shoulder_tilt": 172.2632322081547,
+        "hip_tilt": 178.3534942491903,
+        "spine_tilt": 7.229140057236017
+      }
+    },
+    "2": {
+      "event_name": "Mid-backswing",
+      "method": "feature_medoid_normalized_skeleton",
+      "method_reason": "Uses an actual pro frame closest to event-level pro feature statistics, avoiding anatomically invalid averaged skeletons.",
+      "candidate_count": 336,
+      "source_video_id": 72,
+      "source_video_path": "C:\\Users\\zzang\\Desktop\\workspace\\Python\\golf\\src\\golfdb-master\\learning_video\\golfdb_720p_slice\\72.mp4",
+      "source_frame_index": 53,
+      "pose_backend": "mediapipe",
+      "selection_score": 0.004671456738959259,
+      "selection_feature_count": 4,
+      "landmarks": {
+        "NOSE": [
+          -0.0746096839630785,
+          -0.44392782515190016,
+          0.9998201727867126
+        ],
+        "LEFT_SHOULDER": [
+          0.006416723897033933,
+          -0.3343768573477977,
+          0.9992740750312805
+        ],
+        "RIGHT_SHOULDER": [
+          -0.0842393214572447,
+          -0.3677198196428327,
+          0.9972457885742188
+        ],
+        "LEFT_ELBOW": [
+          -0.14701409990459643,
+          -0.28050302429696466,
+          0.9737582802772522
+        ],
+        "RIGHT_ELBOW": null,
+        "LEFT_WRIST": [
+          -0.31941656201833557,
+          -0.33335283699946877,
+          0.9558740258216858
+        ],
+        "RIGHT_WRIST": null,
+        "LEFT_HIP": [
+          0.06051736710613774,
+          -4.454519665717892e-05,
+          0.9996240139007568
+        ],
+        "RIGHT_HIP": [
+          -0.06051736710613774,
+          4.454519665717892e-05,
+          0.9994843006134033
+        ],
+        "LEFT_KNEE": [
+          0.12591251934272196,
+          0.2938548499439499,
+          0.9954268932342529
+        ],
+        "RIGHT_KNEE": [
+          -0.1234439436080654,
+          0.2776403983607368,
+          0.9961125254631042
+        ],
+        "LEFT_ANKLE": [
+          0.21781372148847827,
+          0.5560721748480998,
+          0.996751070022583
+        ],
+        "RIGHT_ANKLE": [
+          -0.16323204812999473,
+          0.5518997747612108,
+          0.9961329698562622
+        ]
+      },
+      "features": {
+        "trail_elbow_angle": null,
+        "lead_elbow_angle": 143.6095342856858,
+        "shoulder_tilt": 159.80666226104788,
+        "hip_tilt": -179.95782613442813,
+        "spine_tilt": 6.325024707935012
+      }
+    },
+    "3": {
+      "event_name": "Top",
+      "method": "feature_medoid_normalized_skeleton",
+      "method_reason": "Uses an actual pro frame closest to event-level pro feature statistics, avoiding anatomically invalid averaged skeletons.",
+      "candidate_count": 341,
+      "source_video_id": 976,
+      "source_video_path": "C:\\Users\\zzang\\Desktop\\workspace\\Python\\golf\\src\\golfdb-master\\learning_video\\golfdb_720p_slice\\976.mp4",
+      "source_frame_index": 158,
+      "pose_backend": "mediapipe",
+      "selection_score": 0.0020406431949201915,
+      "selection_feature_count": 4,
+      "landmarks": {
+        "NOSE": [
+          -0.10419590089990878,
+          -0.40000702938458743,
+          0.9994670748710632
+        ],
+        "LEFT_SHOULDER": [
+          -0.012098614307378994,
+          -0.34900773800488066,
+          0.9989109039306641
+        ],
+        "RIGHT_SHOULDER": [
+          -0.07852840528936864,
+          -0.3532594597641395,
+          0.997680127620697
+        ],
+        "LEFT_ELBOW": [
+          -0.15565118853755974,
+          -0.38379705734273273,
+          0.9641398787498474
+        ],
+        "RIGHT_ELBOW": null,
+        "LEFT_WRIST": [
+          -0.1773960337123126,
+          -0.52096262544598,
+          0.9200057983398438
+        ],
+        "RIGHT_WRIST": null,
+        "LEFT_HIP": [
+          0.05388427447274687,
+          -0.0018563005736691824,
+          0.9992191791534424
+        ],
+        "RIGHT_HIP": [
+          -0.05388427447274687,
+          0.0018563005736691824,
+          0.9996042847633362
+        ],
+        "LEFT_KNEE": [
+          0.10179673459303527,
+          0.2666412509327888,
+          0.9817954897880554
+        ],
+        "RIGHT_KNEE": [
+          -0.11815975205646474,
+          0.24004413126083476,
+          0.9903427362442017
+        ],
+        "LEFT_ANKLE": [
+          0.1689053652186186,
+          0.4718007287128689,
+          0.985945999622345
+        ],
+        "RIGHT_ANKLE": [
+          -0.1537307735681345,
+          0.47903737455402,
+          0.9897583723068237
+        ]
+      },
+      "features": {
+        "trail_elbow_angle": null,
+        "lead_elbow_angle": 112.6308638618435,
+        "shoulder_tilt": 176.33787962602344,
+        "hip_tilt": -178.02695416165278,
+        "spine_tilt": 7.353334125346785
+      }
+    },
+    "4": {
+      "event_name": "Mid-downswing",
+      "method": "feature_medoid_normalized_skeleton",
+      "method_reason": "Uses an actual pro frame closest to event-level pro feature statistics, avoiding anatomically invalid averaged skeletons.",
+      "candidate_count": 342,
+      "source_video_id": 704,
+      "source_video_path": "C:\\Users\\zzang\\Desktop\\workspace\\Python\\golf\\src\\golfdb-master\\learning_video\\golfdb_720p_slice\\704.mp4",
+      "source_frame_index": 181,
+      "pose_backend": "mediapipe",
+      "selection_score": 0.008754868428721297,
+      "selection_feature_count": 4,
+      "landmarks": {
+        "NOSE": [
+          -0.12744238085613419,
+          -0.4571091408110188,
+          0.9994916915893555
+        ],
+        "LEFT_SHOULDER": [
+          0.042010678673470754,
+          -0.3759837815568182,
+          0.9992783665657043
+        ],
+        "RIGHT_SHOULDER": [
+          -0.14971831731369234,
+          -0.3833759272131693,
+          0.9994988441467285
+        ],
+        "LEFT_ELBOW": [
+          -0.15566504338494527,
+          -0.255936675313522,
+          0.9876295328140259
+        ],
+        "RIGHT_ELBOW": null,
+        "LEFT_WRIST": [
+          -0.361893410606932,
+          -0.2839917867420103,
+          0.9702513813972473
+        ],
+        "RIGHT_WRIST": null,
+        "LEFT_HIP": [
+          0.08417464897835443,
+          -0.004888194014626439,
+          0.9995256662368774
+        ],
+        "RIGHT_HIP": [
+          -0.08417464897835443,
+          0.004888194014626439,
+          0.9998013377189636
+        ],
+        "LEFT_KNEE": [
+          0.13394717038613815,
+          0.27727312509500623,
+          0.993833065032959
+        ],
+        "RIGHT_KNEE": [
+          -0.14427779753724893,
+          0.28071396607761767,
+          0.9966465830802917
+        ],
+        "LEFT_ANKLE": [
+          0.15224308883203305,
+          0.5428908591889812,
+          0.9925519227981567
+        ],
+        "RIGHT_ANKLE": [
+          -0.2435697372054116,
+          0.5397624644537623,
+          0.9953261613845825
+        ]
+      },
+      "features": {
+        "trail_elbow_angle": null,
+        "lead_elbow_angle": 140.9830707169101,
+        "shoulder_tilt": 177.79204460570614,
+        "hip_tilt": -176.67644962433812,
+        "spine_tilt": 8.072986062633447
+      }
+    },
+    "5": {
+      "event_name": "Impact",
+      "method": "feature_medoid_normalized_skeleton",
+      "method_reason": "Uses an actual pro frame closest to event-level pro feature statistics, avoiding anatomically invalid averaged skeletons.",
+      "candidate_count": 341,
+      "source_video_id": 421,
+      "source_video_path": "C:\\Users\\zzang\\Desktop\\workspace\\Python\\golf\\src\\golfdb-master\\learning_video\\golfdb_720p_slice\\421.mp4",
+      "source_frame_index": 232,
+      "pose_backend": "mediapipe",
+      "selection_score": 0.013902381661796234,
+      "selection_feature_count": 5,
+      "landmarks": {
+        "NOSE": [
+          -0.183527023965528,
+          -0.396455921917089,
+          0.9985207915306091
+        ],
+        "LEFT_SHOULDER": [
+          -0.016773943731334343,
+          -0.40054141086621664,
+          0.9997944235801697
+        ],
+        "RIGHT_SHOULDER": [
+          -0.2138191970351125,
+          -0.30078313459718253,
+          0.999954104423523
+        ],
+        "LEFT_ELBOW": [
+          9.828627863390333e-05,
+          -0.20459874439293596,
+          0.6701488494873047
+        ],
+        "RIGHT_ELBOW": [
+          -0.1450100290860256,
+          -0.11871451447028933,
+          0.9634478092193604
+        ],
+        "LEFT_WRIST": [
+          0.047920285526505034,
+          -0.03346863921943187,
+          0.7008362412452698
+        ],
+        "RIGHT_WRIST": [
+          -0.03247253743682846,
+          -0.0003890182137056091,
+          0.9656526446342468
+        ],
+        "LEFT_HIP": [
+          0.06971114157419021,
+          -0.008933226905963628,
+          0.9991304278373718
+        ],
+        "RIGHT_HIP": [
+          -0.06971114157419021,
+          0.008933226905963628,
+          0.9992327690124512
+        ],
+        "LEFT_KNEE": [
+          0.118718523898112,
+          0.2916149537391694,
+          0.9616032838821411
+        ],
+        "RIGHT_KNEE": [
+          -0.10742734862678963,
+          0.27492553183661766,
+          0.9726977944374084
+        ],
+        "LEFT_ANKLE": [
+          0.13915746036131993,
+          0.5994585891337834,
+          0.966647744178772
+        ],
+        "RIGHT_ANKLE": [
+          -0.25580513251580955,
+          0.5405969925846513,
+          0.9703210592269897
+        ]
+      },
+      "features": {
+        "trail_elbow_angle": 157.13924692664196,
+        "lead_elbow_angle": 169.30856028358392,
+        "shoulder_tilt": -153.14823386271067,
+        "hip_tilt": -172.6975549406645,
+        "spine_tilt": 18.20069027431787
+      }
+    },
+    "6": {
+      "event_name": "Mid-follow-through",
+      "method": "feature_medoid_normalized_skeleton",
+      "method_reason": "Uses an actual pro frame closest to event-level pro feature statistics, avoiding anatomically invalid averaged skeletons.",
+      "candidate_count": 342,
+      "source_video_id": 1191,
+      "source_video_path": "C:\\Users\\zzang\\Desktop\\workspace\\Python\\golf\\src\\golfdb-master\\learning_video\\golfdb_720p_slice\\1191.mp4",
+      "source_frame_index": 160,
+      "pose_backend": "mediapipe",
+      "selection_score": 0.014615072890692013,
+      "selection_feature_count": 5,
+      "landmarks": {
+        "NOSE": [
+          -0.2298046715848493,
+          -0.45398688530275344,
+          0.9999427795410156
+        ],
+        "LEFT_SHOULDER": [
+          -0.062164491675827035,
+          -0.42258665185702365,
+          0.9999183416366577
+        ],
+        "RIGHT_SHOULDER": [
+          -0.19032725206630804,
+          -0.30696058722314057,
+          0.9998766183853149
+        ],
+        "LEFT_ELBOW": [
+          0.0826790819421284,
+          -0.28727908116928524,
+          0.8811753988265991
+        ],
+        "RIGHT_ELBOW": [
+          0.011606829782175145,
+          -0.21476870001196352,
+          0.965962290763855
+        ],
+        "LEFT_WRIST": [
+          0.25469716822974536,
+          -0.20970520044444735,
+          0.9254428148269653
+        ],
+        "RIGHT_WRIST": [
+          0.2201951514361005,
+          -0.199690654307467,
+          0.9489940404891968
+        ],
+        "LEFT_HIP": [
+          0.05220759184565848,
+          -0.008563093581511538,
+          0.9993933439254761
+        ],
+        "RIGHT_HIP": [
+          -0.05220759184565848,
+          0.008563093581511538,
+          0.9994043111801147
+        ],
+        "LEFT_KNEE": [
+          0.09337908439568497,
+          0.27629438967622905,
+          0.8963404297828674
+        ],
+        "RIGHT_KNEE": [
+          -0.0805105531627391,
+          0.28228559161213135,
+          0.9862701296806335
+        ],
+        "LEFT_ANKLE": [
+          0.06879196562151069,
+          0.5314452681054499,
+          0.9586062431335449
+        ],
+        "RIGHT_ANKLE": [
+          -0.23837081734196527,
+          0.5460131146972466,
+          0.9911305904388428
+        ]
+      },
+      "features": {
+        "trail_elbow_angle": 159.5956937696789,
+        "lead_elbow_angle": 161.22316322518287,
+        "shoulder_tilt": -137.94380837435256,
+        "hip_tilt": -170.68528052493622,
+        "spine_tilt": 19.09041739853359
+      }
+    },
+    "7": {
+      "event_name": "Finish",
+      "method": "feature_medoid_normalized_skeleton",
+      "method_reason": "Uses an actual pro frame closest to event-level pro feature statistics, avoiding anatomically invalid averaged skeletons.",
+      "candidate_count": 340,
+      "source_video_id": 886,
+      "source_video_path": "C:\\Users\\zzang\\Desktop\\workspace\\Python\\golf\\src\\golfdb-master\\learning_video\\golfdb_720p_slice\\886.mp4",
+      "source_frame_index": 254,
+      "pose_backend": "mediapipe",
+      "selection_score": 0.004578960530384782,
+      "selection_feature_count": 3,
+      "landmarks": {
+        "NOSE": [
+          0.04486527580460194,
+          -0.46493610242003125,
+          0.9998561143875122
+        ],
+        "LEFT_SHOULDER": [
+          0.006014559341495078,
+          -0.36174932387082426,
+          0.9989736080169678
+        ],
+        "RIGHT_SHOULDER": [
+          -0.05372077707603859,
+          -0.3668013527694419,
+          0.9986532926559448
+        ],
+        "LEFT_ELBOW": null,
+        "RIGHT_ELBOW": [
+          -0.029206503541434975,
+          -0.3830693848615493,
+          0.8087884187698364
+        ],
+        "LEFT_WRIST": null,
+        "RIGHT_WRIST": null,
+        "LEFT_HIP": [
+          0.03535023036746905,
+          0.0027635264501706764,
+          0.9998751878738403
+        ],
+        "RIGHT_HIP": [
+          -0.03535023036746905,
+          -0.0027635264501706764,
+          0.9997240900993347
+        ],
+        "LEFT_KNEE": [
+          0.046847419388567825,
+          0.2589867504146807,
+          0.9072304964065552
+        ],
+        "RIGHT_KNEE": [
+          -0.10832722581684351,
+          0.26623852163888995,
+          0.9853755831718445
+        ],
+        "LEFT_ANKLE": [
+          0.06363190012127694,
+          0.5350638975799688,
+          0.988281786441803
+        ],
+        "RIGHT_ANKLE": [
+          -0.29054912365513125,
+          0.4739546174424198,
+          0.9939809441566467
+        ]
+      },
+      "features": {
+        "trail_elbow_angle": null,
+        "lead_elbow_angle": null,
+        "shoulder_tilt": 175.16579700580002,
+        "hip_tilt": 175.5299577908128,
+        "spine_tilt": 3.7464357242259703
+      }
+    }
+  }
+}

@@ -84,6 +84,11 @@ def parse_args() -> argparse.Namespace:
         help="Optional reliability stats JSON. Used when the file exists.",
     )
     parser.add_argument(
+        "--reference-skeletons",
+        default="data/pro_reference_skeletons.json",
+        help="Optional pro reference skeleton JSON for user/pro comparison images.",
+    )
+    parser.add_argument(
         "--output",
         default="outputs/analysis_result",
         help="Output prefix. Writes <prefix>.json and <prefix>.txt.",
@@ -103,20 +108,23 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def output_paths(output: str) -> tuple[Path, Path, Path]:
+def output_paths(output: str) -> tuple[Path, Path, Path, Path]:
     base = Path(output)
     if base.suffix.lower() == ".json":
         json_path = base
         txt_path = base.with_suffix(".txt")
         frame_dir = base.with_suffix("").with_name(base.stem + "_frames")
+        skeleton_dir = base.with_suffix("").with_name(base.stem + "_skeletons")
     else:
         json_path = Path(str(base) + ".json")
         txt_path = Path(str(base) + ".txt")
         frame_dir = Path(str(base) + "_frames")
+        skeleton_dir = Path(str(base) + "_skeletons")
     json_path.parent.mkdir(parents=True, exist_ok=True)
     txt_path.parent.mkdir(parents=True, exist_ok=True)
     frame_dir.mkdir(parents=True, exist_ok=True)
-    return json_path, txt_path, frame_dir
+    skeleton_dir.mkdir(parents=True, exist_ok=True)
+    return json_path, txt_path, frame_dir, skeleton_dir
 
 
 def repo_root() -> Path:
@@ -535,6 +543,7 @@ def analyze_pose_backend(backend, frame, handedness: str) -> dict[str, Any]:
     features = compute_features(landmarks, handedness)
     return {
         "pose_detected": landmarks is not None,
+        "landmarks": landmarks,
         "features": features,
         "computed_feature_count": count_features(features),
     }
@@ -543,6 +552,218 @@ def analyze_pose_backend(backend, frame, handedness: str) -> dict[str, Any]:
 def safe_frame_name(event_idx: int, event_name: str) -> str:
     safe = event_name.lower().replace(" ", "_").replace("-", "_")
     return f"{event_idx}_{safe}.jpg"
+
+
+SKELETON_EDGES = [
+    ("LEFT_SHOULDER", "RIGHT_SHOULDER"),
+    ("LEFT_SHOULDER", "LEFT_ELBOW"),
+    ("LEFT_ELBOW", "LEFT_WRIST"),
+    ("RIGHT_SHOULDER", "RIGHT_ELBOW"),
+    ("RIGHT_ELBOW", "RIGHT_WRIST"),
+    ("LEFT_SHOULDER", "LEFT_HIP"),
+    ("RIGHT_SHOULDER", "RIGHT_HIP"),
+    ("LEFT_HIP", "RIGHT_HIP"),
+    ("LEFT_HIP", "LEFT_KNEE"),
+    ("LEFT_KNEE", "LEFT_ANKLE"),
+    ("RIGHT_HIP", "RIGHT_KNEE"),
+    ("RIGHT_KNEE", "RIGHT_ANKLE"),
+]
+
+
+def load_reference_skeletons(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    return load_stats(path)
+
+
+def reference_event(reference_skeletons: dict[str, Any] | None, event_idx: int) -> dict[str, Any] | None:
+    if not reference_skeletons:
+        return None
+    events = reference_skeletons.get("events", reference_skeletons)
+    return events.get(str(event_idx)) or events.get(EVENT_NAMES[event_idx])
+
+
+def normalize_landmarks(
+    landmarks: dict[str, tuple[float, float, float] | list[float] | None] | None,
+) -> dict[str, list[float] | None] | None:
+    if not landmarks:
+        return None
+
+    def point(name: str):
+        value = landmarks.get(name)
+        if value is None or len(value) < 2:
+            return None
+        return float(value[0]), float(value[1]), float(value[2]) if len(value) > 2 else 1.0
+
+    ls = point("LEFT_SHOULDER")
+    rs = point("RIGHT_SHOULDER")
+    lh = point("LEFT_HIP")
+    rh = point("RIGHT_HIP")
+    visible = [point(name) for name in LANDMARK_NAMES if point(name) is not None]
+    if len(visible) < 4:
+        return None
+
+    if lh and rh:
+        center = ((lh[0] + rh[0]) / 2.0, (lh[1] + rh[1]) / 2.0)
+    else:
+        center = (
+            (min(p[0] for p in visible) + max(p[0] for p in visible)) / 2.0,
+            (min(p[1] for p in visible) + max(p[1] for p in visible)) / 2.0,
+        )
+
+    scale_candidates = []
+    if ls and rs:
+        scale_candidates.append(float(np.hypot(ls[0] - rs[0], ls[1] - rs[1])))
+    if lh and rh:
+        scale_candidates.append(float(np.hypot(lh[0] - rh[0], lh[1] - rh[1])))
+    if ls and rs and lh and rh:
+        mid_s = ((ls[0] + rs[0]) / 2.0, (ls[1] + rs[1]) / 2.0)
+        mid_h = ((lh[0] + rh[0]) / 2.0, (lh[1] + rh[1]) / 2.0)
+        scale_candidates.append(float(np.hypot(mid_s[0] - mid_h[0], mid_s[1] - mid_h[1])))
+    scale_candidates.append(max(max(p[0] for p in visible) - min(p[0] for p in visible), 1.0))
+    scale_candidates.append(max(max(p[1] for p in visible) - min(p[1] for p in visible), 1.0))
+    scale = max(scale_candidates)
+    if scale <= 1e-6:
+        return None
+
+    normalized: dict[str, list[float] | None] = {}
+    for name in LANDMARK_NAMES:
+        p = point(name)
+        if p is None:
+            normalized[name] = None
+        else:
+            normalized[name] = [(p[0] - center[0]) / scale, (p[1] - center[1]) / scale, p[2]]
+    return normalized
+
+
+def _pixel_point(value):
+    if value is None or len(value) < 2:
+        return None
+    return int(round(float(value[0]))), int(round(float(value[1])))
+
+
+def draw_pixel_skeleton(
+    frame_bgr,
+    landmarks: dict[str, tuple[float, float, float] | list[float] | None] | None,
+    color: tuple[int, int, int],
+    thickness: int = 2,
+    radius: int = 4,
+) -> None:
+    if not landmarks:
+        return
+    for start, end in SKELETON_EDGES:
+        p1 = _pixel_point(landmarks.get(start))
+        p2 = _pixel_point(landmarks.get(end))
+        if p1 and p2:
+            cv2.line(frame_bgr, p1, p2, color, thickness=thickness, lineType=cv2.LINE_AA)
+    for name in LANDMARK_NAMES:
+        p = _pixel_point(landmarks.get(name))
+        if p:
+            cv2.circle(frame_bgr, p, radius, color, thickness=-1, lineType=cv2.LINE_AA)
+
+
+def normalized_to_canvas(
+    skeletons: list[dict[str, list[float] | None]],
+    width: int,
+    height: int,
+    margin: int = 48,
+) -> dict[str, float]:
+    points = []
+    for skeleton in skeletons:
+        for value in skeleton.values():
+            if value is not None and len(value) >= 2:
+                points.append((float(value[0]), float(value[1])))
+    if not points:
+        return {"scale": 1.0, "offset_x": width / 2, "offset_y": height / 2}
+
+    min_x = min(p[0] for p in points)
+    max_x = max(p[0] for p in points)
+    min_y = min(p[1] for p in points)
+    max_y = max(p[1] for p in points)
+    span_x = max(max_x - min_x, 1e-6)
+    span_y = max(max_y - min_y, 1e-6)
+    scale = min((width - margin * 2) / span_x, (height - margin * 2) / span_y)
+    return {
+        "scale": scale,
+        "offset_x": (width - (min_x + max_x) * scale) / 2,
+        "offset_y": (height - (min_y + max_y) * scale) / 2,
+    }
+
+
+def draw_normalized_skeleton(
+    canvas,
+    landmarks: dict[str, list[float] | None],
+    transform: dict[str, float],
+    color: tuple[int, int, int],
+    thickness: int = 2,
+    radius: int = 4,
+) -> None:
+    def cv_point(name: str):
+        value = landmarks.get(name)
+        if value is None or len(value) < 2:
+            return None
+        x = float(value[0]) * transform["scale"] + transform["offset_x"]
+        y = float(value[1]) * transform["scale"] + transform["offset_y"]
+        return int(round(x)), int(round(y))
+
+    for start, end in SKELETON_EDGES:
+        p1 = cv_point(start)
+        p2 = cv_point(end)
+        if p1 and p2:
+            cv2.line(canvas, p1, p2, color, thickness=thickness, lineType=cv2.LINE_AA)
+    for name in LANDMARK_NAMES:
+        p = cv_point(name)
+        if p:
+            cv2.circle(canvas, p, radius, color, thickness=-1, lineType=cv2.LINE_AA)
+
+
+def write_skeleton_comparison_image(
+    frame_bgr,
+    user_landmarks: dict[str, tuple[float, float, float] | list[float] | None] | None,
+    reference: dict[str, Any] | None,
+    output_path: Path,
+    event_name: str,
+) -> tuple[bool, str]:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    user_normalized = normalize_landmarks(user_landmarks)
+    reference_landmarks = (reference or {}).get("landmarks")
+
+    overlay = frame_bgr.copy()
+    draw_pixel_skeleton(overlay, user_landmarks, color=(0, 80, 255))
+    target_height = 480
+    scale = target_height / max(overlay.shape[0], 1)
+    overlay = cv2.resize(overlay, (int(overlay.shape[1] * scale), target_height))
+
+    comparison = np.full((target_height, 480, 3), 255, dtype=np.uint8)
+    cv2.putText(comparison, event_name, (24, 36), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (30, 30, 30), 2)
+    cv2.putText(comparison, "user", (24, 68), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 80, 255), 2)
+    cv2.putText(comparison, "pro reference", (110, 68), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (30, 150, 50), 2)
+
+    notes = []
+    skeletons = []
+    if user_normalized:
+        skeletons.append(user_normalized)
+    else:
+        notes.append("user skeleton unavailable")
+    if reference_landmarks:
+        skeletons.append(reference_landmarks)
+    else:
+        notes.append("pro reference unavailable")
+
+    if skeletons:
+        transform = normalized_to_canvas(skeletons, comparison.shape[1], comparison.shape[0], margin=70)
+        if reference_landmarks:
+            draw_normalized_skeleton(comparison, reference_landmarks, transform, color=(30, 150, 50), thickness=2, radius=4)
+        if user_normalized:
+            draw_normalized_skeleton(comparison, user_normalized, transform, color=(0, 80, 255), thickness=2, radius=4)
+
+    for i, note in enumerate(notes):
+        cv2.putText(comparison, note, (24, 110 + i * 28), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (60, 60, 60), 1)
+
+    cv2.putText(overlay, "User keyframe", (18, 34), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+    merged = np.concatenate([overlay, comparison], axis=1)
+    cv2.imwrite(str(output_path), merged)
+    return not notes, "; ".join(notes)
 
 
 def write_outputs(result: dict[str, Any], json_path: Path, txt_path: Path) -> None:
@@ -556,6 +777,10 @@ def write_outputs(result: dict[str, Any], json_path: Path, txt_path: Path) -> No
         f"Handedness: {result.get('handedness')}",
         f"Pose backend request: {result.get('pose_backend')}",
     ]
+    if result.get("event_frame_dir"):
+        lines.append(f"Event frames: {result.get('event_frame_dir')}")
+    if result.get("skeleton_comparison_dir"):
+        lines.append(f"Skeleton comparisons: {result.get('skeleton_comparison_dir')}")
     if result.get("errors"):
         lines.append("Errors:")
         lines.extend(f"- {error}" for error in result["errors"])
@@ -587,6 +812,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     video_path = Path(args.video)
     stats_path = Path(args.pro_stats)
     reliability_stats_path = Path(args.reliability_stats)
+    reference_skeletons_path = Path(args.reference_skeletons)
     checkpoint_path = (
         Path(args.checkpoint)
         if args.checkpoint
@@ -601,6 +827,8 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         "checkpoint_path": None if args.mock_events else str(checkpoint_path),
         "pro_stats_path": str(stats_path),
         "reliability_stats_path": str(reliability_stats_path),
+        "reference_skeletons_path": str(reference_skeletons_path),
+        "reference_skeletons_available": False,
         "events": {},
         "pose_backend_comparison": {
             "mediapipe": {"attempted": False, "pose_detected_events": 0, "notes": []},
@@ -621,6 +849,14 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         result["errors"].append(str(exc))
         return result, 1
     reliability_stats = load_optional_stats(reliability_stats_path)
+    reference_skeletons = load_reference_skeletons(reference_skeletons_path)
+    if reference_skeletons is None:
+        result["errors"].append(
+            f"Pro reference skeletons not found: {reference_skeletons_path}. "
+            "Skeleton comparison images will include the user skeleton only."
+        )
+    else:
+        result["reference_skeletons_available"] = True
 
     try:
         if args.mock_events:
@@ -643,12 +879,16 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         yolo_backend = init_backend("yolopose", result["pose_backend_comparison"]["yolopose"]["notes"])
 
     selected_counts = {"mediapipe": 0, "yolopose": 0}
-    _, _, frame_dir = output_paths(args.output)
+    _, _, frame_dir, skeleton_dir = output_paths(args.output)
+    result["event_frame_dir"] = str(frame_dir)
+    result["skeleton_comparison_dir"] = str(skeleton_dir)
 
     try:
         for event_idx, event_name in enumerate(EVENT_NAMES):
             frame_index = int(event_frames[event_idx])
             frame = read_frame(video_path, frame_index)
+            skeleton_path = skeleton_dir / safe_frame_name(event_idx, event_name)
+            reference = reference_event(reference_skeletons, event_idx)
             if frame is None:
                 result["events"][event_name] = {
                     "frame_index": frame_index,
@@ -663,7 +903,11 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
                         reliability_stats,
                     ),
                     "pose_candidates": {},
+                    "selected_landmarks": None,
                     "notes": ["Could not read event frame."],
+                    "event_frame_path": str(frame_dir / safe_frame_name(event_idx, event_name)),
+                    "skeleton_comparison_path": None,
+                    "reference_skeleton_available": reference is not None,
                 }
                 continue
 
@@ -692,6 +936,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
                 "confidence": confidence[event_idx],
                 "pose_detected": bool(selected["pose_detected"]),
                 "selected_pose_backend": selected_backend,
+                "selected_landmarks": selected.get("landmarks"),
                 "features": selected["features"],
                 "feedback": feedback_for_event(event_idx, selected["features"], stats, reliability_stats),
                 "pose_candidates": {
@@ -699,7 +944,20 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
                     "yolopose": yolo_result,
                 },
                 "event_frame_path": str(frame_dir / safe_frame_name(event_idx, event_name)),
+                "skeleton_comparison_path": str(skeleton_path),
+                "reference_skeleton_available": reference is not None,
+                "reference_skeleton_source": (reference or {}).get("source_video_id"),
             }
+            ok, note = write_skeleton_comparison_image(
+                frame,
+                selected.get("landmarks"),
+                reference,
+                skeleton_path,
+                event_name,
+            )
+            if note:
+                result["events"][event_name].setdefault("notes", []).append(note)
+            result["events"][event_name]["skeleton_comparison_complete"] = ok
     finally:
         if media_backend:
             media_backend.close()
@@ -723,7 +981,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
 
 def main() -> int:
     args = parse_args()
-    json_path, txt_path, _ = output_paths(args.output)
+    json_path, txt_path, _, _ = output_paths(args.output)
     result, exit_code = run(args)
     write_outputs(result, json_path, txt_path)
     print(f"JSON result: {json_path}")

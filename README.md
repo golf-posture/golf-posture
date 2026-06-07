@@ -209,8 +209,9 @@ SwingNet checkpoint를 명시하는 경우:
 pixi run python -m pipeline.run_analysis \
   --video path/to/sample.mp4 \
   --checkpoint event_detection/models/swingnet_1800.pth.tar \
-  --pro-stats data/pro_angle_stats.json \
+  --pro-stats data/pro_feature_stats_reliability.json \
   --reliability-stats data/pro_feature_stats_reliability.json \
+  --reference-skeletons data/pro_reference_skeletons.json \
   --output outputs/sample_result \
   --handedness right \
   --pose-backend hybrid
@@ -236,7 +237,11 @@ pixi run python -m pipeline.run_analysis \
 outputs/sample_result.json
 outputs/sample_result.txt
 outputs/sample_result_frames/
+outputs/sample_result_skeletons/
 ```
+
+`outputs/sample_result_frames/`에는 8개 이벤트 keyframe 이미지가 저장됩니다.
+`outputs/sample_result_skeletons/`에는 이벤트별 사용자/pro 기준 skeleton 비교 이미지가 저장됩니다. 왼쪽은 사용자 keyframe skeleton overlay이고, 오른쪽은 정규화된 사용자 skeleton과 프로 기준 skeleton을 함께 그린 비교 패널입니다.
 
 JSON에는 이벤트별로 다음 정보가 들어갑니다.
 
@@ -296,6 +301,20 @@ pixi run python -m pipeline.compute_reliability_stats \
   --output-json data\pro_feature_stats_reliability.json \
   --stats-csv data\pro_feature_stats_reliability.csv \
   --summary outputs\pro_feature_reliability_summary.txt
+```
+
+## 프로 기준 skeleton 생성
+
+`data/pro_reference_skeletons.json`은 8개 GolfDB/SwingNet 이벤트별 프로 기준 skeleton을 저장합니다. 이번 MVP에서는 평균 skeleton이 아니라 feature-medoid 방식을 사용합니다. 즉, 각 이벤트에서 프로 feature 통계에 가장 가까운 실제 프로 프레임 하나를 기준 skeleton으로 선택합니다. 관절 좌표를 독립적으로 평균내면 실제 사람 자세와 다른 skeleton이 생길 수 있기 때문에, 실제 프레임을 선택하는 방식이 더 안정적입니다.
+
+```bash
+pixi run python -m pipeline.build_reference_skeletons \
+  --videos-dir "C:\Users\zzang\Desktop\workspace\Python\golf\src\golfdb-master\learning_video\golfdb_720p_slice" \
+  --labels event_detection\data\golfDB_labels.csv \
+  --feature-stats data\pro_feature_stats_reliability.json \
+  --output data\pro_reference_skeletons.json \
+  --pose-backend mediapipe \
+  --handedness right
 ```
 
 ## 파일별 설명
@@ -358,6 +377,12 @@ pipeline/compute_reliability_stats.py
 `pro_feature_raw.csv`를 읽어 event-feature별 통계를 계산합니다. circular angle 보정, detection_rate 계산, reliability 분류, 요약 파일 생성을 담당합니다.
 
 ```text
+pipeline/build_reference_skeletons.py
+```
+
+342개 GolfDB 720p slice 영상에서 이벤트별 프로 기준 skeleton을 생성합니다. 각 이벤트에서 프로 feature 통계에 가장 가까운 실제 프로 프레임을 선택하는 feature-medoid 방식을 사용하며, 결과는 `data/pro_reference_skeletons.json`에 저장됩니다.
+
+```text
 pipeline/__init__.py
 ```
 
@@ -407,6 +432,12 @@ data/pro_feature_stats_reliability.csv
 ```
 
 `pro_feature_stats_reliability.json`과 같은 내용을 표 형태로 확인하기 위한 CSV입니다.
+
+```text
+data/pro_reference_skeletons.json
+```
+
+사용자/pro 기준 skeleton 비교 이미지를 만들기 위한 이벤트별 기준 skeleton 데이터입니다. 정규화된 landmark 좌표, 기준으로 선택된 프로 영상 id, 이벤트 frame, 선택 방식 metadata가 들어 있습니다.
 
 ### event_detection
 
@@ -545,6 +576,7 @@ outputs/
 ```bash
 pixi run python -m py_compile \
   pipeline/run_analysis.py \
+  pipeline/build_reference_skeletons.py \
   pipeline/extract_pro_features.py \
   pipeline/compute_reliability_stats.py
 ```
@@ -570,13 +602,26 @@ pixi run python -m pipeline.compute_reliability_stats \
   --summary outputs\pro_feature_reliability_summary.txt
 ```
 
+프로 기준 skeleton 생성:
+
+```bash
+pixi run python -m pipeline.build_reference_skeletons \
+  --videos-dir "C:\Users\zzang\Desktop\workspace\Python\golf\src\golfdb-master\learning_video\golfdb_720p_slice" \
+  --labels event_detection\data\golfDB_labels.csv \
+  --feature-stats data\pro_feature_stats_reliability.json \
+  --output data\pro_reference_skeletons.json \
+  --pose-backend mediapipe \
+  --handedness right
+```
+
 사용자 영상 분석:
 
 ```bash
 pixi run python -m pipeline.run_analysis \
   --video path/to/sample.mp4 \
-  --pro-stats data\pro_angle_stats.json \
+  --pro-stats data\pro_feature_stats_reliability.json \
   --reliability-stats data\pro_feature_stats_reliability.json \
+  --reference-skeletons data\pro_reference_skeletons.json \
   --output outputs/sample_result \
   --handedness right \
   --pose-backend hybrid
