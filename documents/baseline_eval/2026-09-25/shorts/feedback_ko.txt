@@ -1,0 +1,36 @@
+[전체 요약]
+Excellent 31개, Good 4개, Needs Improvement 5개, unavailable 0개입니다.
+총 40개 항목 중 교정이 필요한 항목이 5개 확인되었습니다.
+
+[자세 평가 요약표]
+Event               trail_elbow_angle  lead_elbow_angle   shoulder_tilt       hip_tilt            spine_tilt
+------------------  -----------------  -----------------  ------------------  ------------------  ----------
+Address             Excellent          Excellent          Excellent           Excellent           Excellent 
+Toe-up              Excellent          Needs Improvement  Excellent           Excellent           Excellent 
+Mid-backswing       Excellent          Good*              Excellent           Excellent           Excellent 
+Top                 Excellent          Excellent          Needs Improvement*  Needs Improvement*  Excellent 
+Mid-downswing       Excellent          Needs Improvement  Excellent           Excellent           Excellent 
+Impact              Excellent          Excellent          Excellent           Excellent           Excellent 
+Mid-follow-through  Excellent          Excellent          Needs Improvement   Excellent           Good      
+Finish              Good*              Good*              Excellent           Excellent           Excellent 
+
+* = 프로 선수 간 개인차가 큰 항목으로 참고용 지표
+
+[핵심 피드백]
+1. 다운스윙 중간 단계에서 리드 팔꿈치 각도가 프로 기준과 크게 차이가 있습니다. 일반적인 점검 항목으로 참고할 수 있습니다. z-score는 -3.84입니다.
+2. 토업 단계에서 리드 팔꿈치 각도가 프로 기준과 크게 차이가 있습니다. 일반적인 점검 항목으로 참고할 수 있습니다. z-score는 -2.50입니다.
+3. 팔로우스루 중간 단계에서 어깨 기울기가 프로 기준과 크게 차이가 있습니다. 일반적인 점검 항목으로 참고할 수 있습니다. z-score는 -2.48입니다.
+4. 팔로우스루 중간 단계에서 척추 기울기가 프로 기준과 약간 차이가 있습니다. 이 항목은 프로 선수들 사이에서도 공통성이 높은 지표이므로 우선적으로 확인하는 것이 좋습니다. z-score는 -1.71입니다.
+
+[참고 지표]
+- 탑 단계의 골반 기울기는 프로 기준과 차이가 있으나, 프로 선수 간 개인차가 큰 항목이므로 참고용으로만 보는 것이 적절합니다.
+- 탑 단계의 어깨 기울기는 프로 기준과 차이가 있으나, 프로 선수 간 개인차가 큰 항목이므로 참고용으로만 보는 것이 적절합니다.
+- 피니시 단계의 트레일 팔꿈치 각도는 프로 기준과 차이가 있으나, 프로 선수 간 개인차가 큰 항목이므로 참고용으로만 보는 것이 적절합니다.
+
+[결과 파일]
+- JSON 상세 결과: outputs\baseline_snapshot\shorts\shorts_result.json
+- 기본 텍스트 요약: outputs\baseline_snapshot\shorts\shorts_summary.txt
+- 표 CSV: outputs\baseline_snapshot\shorts\feedback_table.csv
+- 한국어 피드백: outputs\baseline_snapshot\shorts\feedback_ko.txt
+- keyframe 이미지 폴더: outputs\baseline_snapshot\shorts\frames
+- skeleton 비교 이미지 폴더: outputs\baseline_snapshot\shorts\skeletons
