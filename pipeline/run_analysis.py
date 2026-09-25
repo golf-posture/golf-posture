@@ -91,6 +91,11 @@ def parse_args() -> argparse.Namespace:
         help="Optional per-event covariance/precision JSON for the Mahalanobis combined score.",
     )
     parser.add_argument(
+        "--dynamics-stats",
+        default="data/pro_dynamics_stats.json",
+        help="Optional event-to-event delta (swing dynamics) stats JSON.",
+    )
+    parser.add_argument(
         "--reference-skeletons",
         default="data/pro_reference_skeletons.json",
         help="Optional pro reference skeleton JSON for user/pro comparison images.",
@@ -634,6 +639,71 @@ def mahalanobis_combined_score(
     return item
 
 
+def dynamics_pair_label(start_idx: int, end_idx: int) -> str:
+    return f"{EVENT_NAMES[start_idx]}->{EVENT_NAMES[end_idx]}"
+
+
+def dynamics_feedback_for_pair(
+    start_features: dict[str, float | None],
+    end_features: dict[str, float | None],
+    start_idx: int,
+    end_idx: int,
+    dynamics_stats: dict[str, Any] | None,
+) -> dict[str, Any]:
+    label = dynamics_pair_label(start_idx, end_idx)
+    pair_features = (dynamics_stats or {}).get("pairs", {}).get(label, {}).get("features", {})
+
+    feedback: dict[str, Any] = {}
+    for feature_name in REQUIRED_FEATURES:
+        item: dict[str, Any] = {
+            "delta": None,
+            "pro_median_delta": None,
+            "robust_z": None,
+            "grade": "unavailable",
+            "message": "",
+        }
+        start_value = start_features.get(feature_name)
+        end_value = end_features.get(feature_name)
+        stat = pair_features.get(feature_name)
+
+        if start_value is None or end_value is None:
+            item["message"] = f"{label} {feature_name}: one of the two event values is unavailable."
+            feedback[feature_name] = item
+            continue
+        if stat is None or stat.get("median") is None:
+            item["message"] = f"{label} {feature_name}: not enough pro samples for this event pair."
+            feedback[feature_name] = item
+            continue
+
+        if feature_name in CIRCULAR_FEATURES:
+            delta = circular_delta(end_value, start_value)
+        else:
+            delta = end_value - start_value
+        median_delta = stat["median"]
+        scaled_mad = stat["scaled_mad"]
+        item["delta"] = delta
+        item["pro_median_delta"] = median_delta
+
+        if scaled_mad is None or scaled_mad <= 0:
+            item["message"] = f"{label} {feature_name}: pro dynamics scaled MAD is missing or zero."
+            feedback[feature_name] = item
+            continue
+
+        if feature_name in CIRCULAR_FEATURES:
+            z_diff = circular_delta(delta, median_delta)
+        else:
+            z_diff = delta - median_delta
+        robust_z = float(z_diff / scaled_mad)
+        item["robust_z"] = robust_z
+        item["grade"] = grade_from_z(robust_z)
+        item["message"] = (
+            f"{label} {feature_name}: {item['grade']} "
+            f"(delta={delta:.2f}, pro_median_delta={median_delta:.2f}, robust_z={robust_z:.2f})"
+        )
+        feedback[feature_name] = item
+    return feedback
+
+
 def count_features(features: dict[str, float | None]) -> int:
     return sum(1 for name in REQUIRED_FEATURES if features.get(name) is not None)
 
@@ -941,6 +1011,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     stats_path = Path(args.pro_stats)
     reliability_stats_path = Path(args.reliability_stats)
     covariance_stats_path = Path(args.covariance_stats)
+    dynamics_stats_path = Path(args.dynamics_stats)
     reference_skeletons_path = Path(args.reference_skeletons)
     checkpoint_path = (
         Path(args.checkpoint)
@@ -957,6 +1028,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         "pro_stats_path": str(stats_path),
         "reliability_stats_path": str(reliability_stats_path),
         "covariance_stats_path": str(covariance_stats_path),
+        "dynamics_stats_path": str(dynamics_stats_path),
         "reference_skeletons_path": str(reference_skeletons_path),
         "reference_skeletons_available": False,
         "output_mode": None,
@@ -984,6 +1056,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         return result, 1
     reliability_stats = load_optional_stats(reliability_stats_path)
     covariance_stats = load_optional_stats(covariance_stats_path)
+    dynamics_stats = load_optional_stats(dynamics_stats_path)
     reference_skeletons = load_reference_skeletons(reference_skeletons_path)
     if reference_skeletons is None:
         result["errors"].append(
@@ -1123,6 +1196,20 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
 
     result["pose_backend_comparison"]["selected_backend"] = selected_backend
     result["pose_backend_comparison"]["selection_reason"] = reason
+
+    dynamics: dict[str, Any] = {}
+    for start_idx in range(len(EVENT_NAMES) - 1):
+        end_idx = start_idx + 1
+        start_event = result["events"].get(EVENT_NAMES[start_idx], {})
+        end_event = result["events"].get(EVENT_NAMES[end_idx], {})
+        start_features = start_event.get("features", {name: None for name in REQUIRED_FEATURES})
+        end_features = end_event.get("features", {name: None for name in REQUIRED_FEATURES})
+        label = dynamics_pair_label(start_idx, end_idx)
+        dynamics[label] = dynamics_feedback_for_pair(
+            start_features, end_features, start_idx, end_idx, dynamics_stats
+        )
+    result["dynamics"] = dynamics
+
     return result, 0
 
 
