@@ -10,6 +10,7 @@ from statistics import median
 from typing import Iterable
 
 import numpy as np
+from scipy.stats import chi2
 
 from pipeline.run_analysis import EVENT_NAMES, REQUIRED_FEATURES
 
@@ -20,6 +21,10 @@ SHRINKAGE_TRIGGER_CONDITION = 50.0
 SHRINKAGE_TARGET_CONDITION = 30.0
 SHRINKAGE_MAX_ALPHA = 0.5
 SHRINKAGE_STEP = 0.05
+
+MIN_COMPLETE_CASE_SAMPLES = 10 * len(REQUIRED_FEATURES)
+OUTLIER_TRIM_ITERATIONS = 2
+OUTLIER_TRIM_CHI2_PERCENTILE = 97.5
 
 
 def parse_args() -> argparse.Namespace:
@@ -185,11 +190,47 @@ def shrink_covariance(cov: np.ndarray) -> tuple[np.ndarray, float, float, float]
     shrunk = cov
     condition_after = condition_before
     while alpha < SHRINKAGE_MAX_ALPHA and condition_after > SHRINKAGE_TARGET_CONDITION:
-        alpha += SHRINKAGE_STEP
+        alpha = min(alpha + SHRINKAGE_STEP, SHRINKAGE_MAX_ALPHA)
         shrunk = (1.0 - alpha) * cov + alpha * avg_variance * np.eye(dimension)
         condition_after = float(np.linalg.cond(shrunk))
 
     return shrunk, condition_before, condition_after, float(alpha)
+
+
+def center_on_population_mean(
+    vector: list[float], feature_names: list[str], mean_vector: list[float]
+) -> list[float]:
+    return [
+        value if feature_name in CIRCULAR_FEATURES else value - mean
+        for feature_name, value, mean in zip(feature_names, vector, mean_vector)
+    ]
+
+
+def sample_covariance(centered_matrix: np.ndarray) -> np.ndarray:
+    n = centered_matrix.shape[0]
+    return (centered_matrix.T @ centered_matrix) / (n - 1)
+
+
+def trim_outliers(centered_matrix: np.ndarray) -> tuple[np.ndarray, int]:
+    dimension = centered_matrix.shape[1]
+    threshold = float(chi2.ppf(OUTLIER_TRIM_CHI2_PERCENTILE / 100.0, df=dimension))
+    kept = centered_matrix
+    n_removed = 0
+    for _ in range(OUTLIER_TRIM_ITERATIONS):
+        if kept.shape[0] < MIN_COMPLETE_CASE_SAMPLES:
+            break
+        cov = sample_covariance(kept)
+        try:
+            precision = np.linalg.inv(cov)
+        except np.linalg.LinAlgError:
+            break
+        squared_distance = np.einsum("ij,jk,ik->i", kept, precision, kept)
+        keep_mask = squared_distance <= threshold
+        if keep_mask.all():
+            break
+        n_removed += int((~keep_mask).sum())
+        kept = kept[keep_mask]
+    return kept, n_removed
 
 
 def compute_covariance_stats(rows: list[dict], stats: dict) -> dict:
@@ -205,18 +246,19 @@ def compute_covariance_stats(rows: list[dict], stats: dict) -> dict:
         }
         mean_vector = [stats[str(event_index)][feature_name]["mean"] for feature_name in REQUIRED_FEATURES]
 
-        complete_rows = []
+        centered_rows = []
         for row in grouped.get(event_index, []):
             vector = event_feature_vector(row, circular_centers, REQUIRED_FEATURES)
             if vector is not None:
-                complete_rows.append(vector)
+                centered_rows.append(center_on_population_mean(vector, REQUIRED_FEATURES, mean_vector))
 
-        n_complete = len(complete_rows)
-        if n_complete < len(REQUIRED_FEATURES) + 1:
+        n_complete = len(centered_rows)
+        if n_complete < MIN_COMPLETE_CASE_SAMPLES:
             events[str(event_index)] = {
                 "feature_order": REQUIRED_FEATURES,
                 "mean": mean_vector,
                 "n_complete": n_complete,
+                "n_outliers_removed": 0,
                 "covariance": None,
                 "precision": None,
                 "condition_number_before_shrinkage": None,
@@ -225,8 +267,9 @@ def compute_covariance_stats(rows: list[dict], stats: dict) -> dict:
             }
             continue
 
-        matrix = np.asarray(complete_rows, dtype=float)
-        cov = np.cov(matrix, rowvar=False)
+        matrix = np.asarray(centered_rows, dtype=float)
+        trimmed_matrix, n_outliers_removed = trim_outliers(matrix)
+        cov = sample_covariance(trimmed_matrix)
         shrunk_cov, condition_before, condition_after, alpha = shrink_covariance(cov)
         precision = np.linalg.inv(shrunk_cov)
         assert np.all(np.isfinite(precision))
@@ -235,6 +278,7 @@ def compute_covariance_stats(rows: list[dict], stats: dict) -> dict:
             "feature_order": REQUIRED_FEATURES,
             "mean": mean_vector,
             "n_complete": n_complete,
+            "n_outliers_removed": n_outliers_removed,
             "covariance": shrunk_cov.tolist(),
             "precision": precision.tolist(),
             "condition_number_before_shrinkage": condition_before,
@@ -248,6 +292,16 @@ def compute_covariance_stats(rows: list[dict], stats: dict) -> dict:
             "features": REQUIRED_FEATURES,
             "circular_features": sorted(CIRCULAR_FEATURES),
             "event_names": EVENT_NAMES,
+            "centering_rule": (
+                "Covariance is computed on rows centered around the SAME population mean "
+                "(pro_feature_stats_reliability.json) used later for the Mahalanobis diff vector, "
+                "not each fitting sample's own mean."
+            ),
+            "outlier_trim_rule": (
+                f"Up to {OUTLIER_TRIM_ITERATIONS} passes drop rows whose squared Mahalanobis "
+                f"distance (against the running fit) exceeds the chi2(5) "
+                f"{OUTLIER_TRIM_CHI2_PERCENTILE}th percentile, refitting covariance each pass."
+            ),
             "shrinkage_rule": (
                 f"If condition number > {SHRINKAGE_TRIGGER_CONDITION}, shrink toward "
                 f"(avg_variance * I) in steps of {SHRINKAGE_STEP} until condition number "

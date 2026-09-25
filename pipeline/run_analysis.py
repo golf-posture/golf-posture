@@ -575,12 +575,12 @@ COMBINED_EXCELLENT_PERCENTILE = 68.27  # ~1 sigma two-tailed coverage, matches g
 COMBINED_GOOD_PERCENTILE = 95.45  # ~2 sigma two-tailed coverage, matches grade_from_z |z|<=2
 
 
-def grade_from_combined_percentile(percentile: float | None) -> str:
-    if percentile is None:
+def grade_from_combined_percentile(deviation_percentile: float | None) -> str:
+    if deviation_percentile is None:
         return "unavailable"
-    if percentile <= COMBINED_EXCELLENT_PERCENTILE:
+    if deviation_percentile <= COMBINED_EXCELLENT_PERCENTILE:
         return "Excellent"
-    if percentile <= COMBINED_GOOD_PERCENTILE:
+    if deviation_percentile <= COMBINED_GOOD_PERCENTILE:
         return "Good"
     return "Needs Improvement"
 
@@ -592,7 +592,8 @@ def mahalanobis_combined_score(
 ) -> dict[str, Any]:
     item: dict[str, Any] = {
         "distance": None,
-        "percentile": None,
+        # Higher = further into the pro population's deviant tail (worse), NOT "better than X% of pros".
+        "deviation_percentile": None,
         "grade": "unavailable",
         "shrinkage_alpha": None,
         "message": "",
@@ -619,15 +620,16 @@ def mahalanobis_combined_score(
     precision = np.asarray(event_stats["precision"], dtype=float)
     squared_distance = max(float(diff_vector @ precision @ diff_vector), 0.0)
     distance = float(np.sqrt(squared_distance))
-    percentile = float(chi2.cdf(squared_distance, df=len(feature_order))) * 100.0
+    deviation_percentile = float(chi2.cdf(squared_distance, df=len(feature_order))) * 100.0
 
     item["distance"] = distance
-    item["percentile"] = percentile
+    item["deviation_percentile"] = deviation_percentile
     item["shrinkage_alpha"] = event_stats.get("shrinkage_alpha")
-    item["grade"] = grade_from_combined_percentile(percentile)
+    item["grade"] = grade_from_combined_percentile(deviation_percentile)
     item["message"] = (
         f"combined: {item['grade']} (mahalanobis={distance:.2f}, "
-        f"percentile={percentile:.1f}, features={feature_order})"
+        f"deviation_percentile={deviation_percentile:.1f} [higher=more unusual], "
+        f"features={feature_order})"
     )
     return item
 
