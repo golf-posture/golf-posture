@@ -257,6 +257,7 @@ def compute_covariance_stats(rows: list[dict], stats: dict) -> dict:
             events[str(event_index)] = {
                 "feature_order": REQUIRED_FEATURES,
                 "mean": mean_vector,
+                "population_mean": mean_vector,
                 "n_complete": n_complete,
                 "n_outliers_removed": 0,
                 "covariance": None,
@@ -269,14 +270,48 @@ def compute_covariance_stats(rows: list[dict], stats: dict) -> dict:
 
         matrix = np.asarray(centered_rows, dtype=float)
         trimmed_matrix, n_outliers_removed = trim_outliers(matrix)
-        cov = sample_covariance(trimmed_matrix)
+
+        # Re-center on the trimmed (outlier-free) sample's own mean so the stored "mean" and
+        # the covariance/precision used by mahalanobis_combined_score are mutually consistent
+        # and both robust -- instead of reusing the non-robust population mean for centering.
+        # Circular columns already hold deltas from the population mean; a circular (vector-sum)
+        # mean of those deltas is required here, not a plain arithmetic mean, because a wide
+        # circular spread (e.g. shoulder_tilt at Finish) can straddle the +-180 wrap boundary.
+        mean_residual = np.asarray(
+            [
+                circular_mean(trimmed_matrix[:, i].tolist())
+                if feature_name in CIRCULAR_FEATURES
+                else float(trimmed_matrix[:, i].mean())
+                for i, feature_name in enumerate(REQUIRED_FEATURES)
+            ]
+        )
+        robust_mean_vector = [
+            circular_delta(mean_vector[i] + mean_residual[i], 0.0)
+            if feature_name in CIRCULAR_FEATURES
+            else mean_vector[i] + mean_residual[i]
+            for i, feature_name in enumerate(REQUIRED_FEATURES)
+        ]
+        final_centered = np.asarray(
+            [
+                [
+                    circular_delta(trimmed_matrix[row_idx, i], mean_residual[i])
+                    if feature_name in CIRCULAR_FEATURES
+                    else trimmed_matrix[row_idx, i] - mean_residual[i]
+                    for i, feature_name in enumerate(REQUIRED_FEATURES)
+                ]
+                for row_idx in range(trimmed_matrix.shape[0])
+            ]
+        )
+
+        cov = sample_covariance(final_centered)
         shrunk_cov, condition_before, condition_after, alpha = shrink_covariance(cov)
         precision = np.linalg.inv(shrunk_cov)
         assert np.all(np.isfinite(precision))
 
         events[str(event_index)] = {
             "feature_order": REQUIRED_FEATURES,
-            "mean": mean_vector,
+            "mean": robust_mean_vector,
+            "population_mean": mean_vector,
             "n_complete": n_complete,
             "n_outliers_removed": n_outliers_removed,
             "covariance": shrunk_cov.tolist(),
@@ -293,9 +328,10 @@ def compute_covariance_stats(rows: list[dict], stats: dict) -> dict:
             "circular_features": sorted(CIRCULAR_FEATURES),
             "event_names": EVENT_NAMES,
             "centering_rule": (
-                "Covariance is computed on rows centered around the SAME population mean "
-                "(pro_feature_stats_reliability.json) used later for the Mahalanobis diff vector, "
-                "not each fitting sample's own mean."
+                "Outlier detection centers on the population mean (pro_feature_stats_reliability.json, "
+                "'population_mean' below). After trimming, the covariance/precision and the stored "
+                "'mean' are both recomputed around the trimmed sample's own mean, so mean and "
+                "covariance stay mutually consistent and both outlier-robust."
             ),
             "outlier_trim_rule": (
                 f"Up to {OUTLIER_TRIM_ITERATIONS} passes drop rows whose squared Mahalanobis "
