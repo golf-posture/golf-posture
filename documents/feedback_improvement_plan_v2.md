@@ -1,9 +1,33 @@
 # 골프 스윙 피드백 신뢰도 개선 - 구현 계획 v2 (구조 개선판)
 
 작성일: 2026-09-16
-상태: 계획 확정 대기 (구현 착수 전, 사용자 확인 대기 중)
+상태: 구현 진행 중 (3주차, 브랜치 `feature/feedback-v2-week2`에서 진행)
 근거 문서: `documents/feedback_improvement_plan.md` (v1), `documents/feedback_improvement_ideas.md`
 개발 기간: 약 1개월
+
+## 진행 현황 (2026-09-25 기준)
+
+### 브랜치
+- `feature/feedback-v2` — 1주차 전체 작업 커밋 (`main`에서 분기).
+- `feature/feedback-v2-week2` — 2주차 이후 작업 진행 중 (`feature/feedback-v2`에서 분기).
+
+### 1주차 — 베이스라인 스냅샷 + 데이터 진단 (완료)
+- `raw_videos/` 6개 영상으로 현재 파이프라인 베이스라인 스냅샷 저장: `documents/baseline_eval/2026-09-25/`.
+- 신규 `pipeline/diagnose_reliability_stats.py`: 결측 패턴, 이벤트별 공분산 조건수, 클러스터 분리도(실루엣) 진단.
+- 상세 결과/결정 게이트: `documents/feedback_v2_week1_diagnosis.md`.
+- 핵심 결론: `trail_elbow_angle`이 Mid-backswing/Top/Mid-downswing에서 결측률 60%대로 심각 → 40차원 전체-complete-case 클러스터링은 표본 13명으로 붕괴, 실루엣 0.09~0.14로 무의미.
+
+### 2주차 — Mahalanobis 결합 스코어 (완료), 클러스터링 (최종 스킵)
+- `compute_reliability_stats.py`: 이벤트별 공분산/precision 계산(`compute_covariance_stats`), 조건수 기반 자동 shrinkage(`shrink_covariance`), **이상치 2회 트리밍**(`trim_outliers`, 카이제곱 97.5백분위 기준), **트리밍된 표본 자체의 강건 평균으로 재센터링**(공분산·평균 일관성 확보) → `data/pro_feature_covariance.json` 신규.
+- `run_analysis.py`: `mahalanobis_combined_score()` 신규 — 이벤트별 `combined_score.deviation_percentile`/`grade` 필드 추가(기존 `feedback.<feature>.*` 필드는 전혀 변경 없음, additive-only).
+- **클러스터링(항목 3) 최종 스킵**: `trail_elbow_angle` 제외 재진단에서 처음엔 k=2 실루엣 0.4574로 유망해 보였으나, 실제로는 이상치 2명(pose 오검출)을 분리한 결과였음을 검증 과정에서 발견 — 이상치 제거 후 실루엣 0.06~0.11로 붕괴. 원본 342개 영상(`learning_video/golfdb_720p_slice`)을 확보했음에도 실제 클러스터 구조가 없어 skeleton 클러스터링은 구현하지 않음.
+- 자체 재검토(코드 리뷰)로 이상치-오염 공분산 문제(캘리브레이션 median 7.6~27.2% → 수정 후 28.9~58.4%, 이론값 50%에 근접)와 circular 평균 버그를 발견/수정함.
+- 상세 내용: `documents/feedback_v2_week2_notes.md`.
+- 6개 영상 전부 기존 `z_score`/`grade` byte-level 동일함을 반복 검증(회귀 없음).
+
+### 3주차 — 진행 중
+- 범위를 **스윙 다이내믹스(이벤트 간 delta)만**으로 좁힘 — 문구 계층(B2/B3/B4)은 이번 3주차에서 제외하고 별도 계획으로 이후 다룸.
+- 클러스터링이 스킵되어 원 계획의 "클러스터·다이내믹스 결과를 문구에 반영" 중 클러스터 부분은 자연히 제외됨.
 
 ## 배경 - v1 계획과의 관계
 
