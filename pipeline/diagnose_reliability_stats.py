@@ -37,6 +37,14 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_K_VALUES,
         help="Candidate cluster counts to evaluate for silhouette score.",
     )
+    parser.add_argument(
+        "--exclude-features",
+        nargs="+",
+        default=[],
+        choices=REQUIRED_FEATURES,
+        help="Features to drop from the clustering vector only "
+        "(covariance condition numbers still use all REQUIRED_FEATURES).",
+    )
     return parser.parse_args()
 
 
@@ -58,9 +66,11 @@ def missing_pattern_report(stats: dict) -> list[dict]:
     return rows
 
 
-def event_feature_vector(row: dict, circular_centers: dict[str, float]) -> list[float] | None:
+def event_feature_vector(
+    row: dict, circular_centers: dict[str, float], feature_names: list[str] = REQUIRED_FEATURES
+) -> list[float] | None:
     values = []
-    for feature_name in REQUIRED_FEATURES:
+    for feature_name in feature_names:
         value = as_float(row.get(feature_name))
         if value is None:
             return None
@@ -112,7 +122,9 @@ def covariance_condition_numbers(rows: list[dict], stats: dict) -> list[dict]:
     return results
 
 
-def build_video_vectors(rows: list[dict], stats: dict) -> tuple[np.ndarray, list[str]]:
+def build_video_vectors(
+    rows: list[dict], stats: dict, feature_names: list[str] = REQUIRED_FEATURES
+) -> tuple[np.ndarray, list[str]]:
     circular_centers_by_event = {
         event_index: {
             feature_name: stats[str(event_index)][feature_name]["mean"]
@@ -137,7 +149,7 @@ def build_video_vectors(rows: list[dict], stats: dict) -> tuple[np.ndarray, list
             if row is None:
                 is_complete = False
                 break
-            vector = event_feature_vector(row, circular_centers_by_event[event_index])
+            vector = event_feature_vector(row, circular_centers_by_event[event_index], feature_names)
             if vector is None:
                 is_complete = False
                 break
@@ -212,6 +224,7 @@ def write_summary(
     covariance_rows: list[dict],
     cluster_rows: list[dict],
     n_complete_videos: int,
+    cluster_feature_names: list[str],
     summary_path: Path,
 ) -> None:
     summary_path.parent.mkdir(parents=True, exist_ok=True)
@@ -237,7 +250,10 @@ def write_summary(
         )
 
     lines.append("")
-    lines.append(f"3. Cluster separability (complete-case videos, n={n_complete_videos}):")
+    lines.append(
+        f"3. Cluster separability (complete-case videos, n={n_complete_videos}, "
+        f"features={cluster_feature_names}):"
+    )
     for row in cluster_rows:
         silhouette_text = f"{row['silhouette']:.4f}" if row["silhouette"] is not None else "n/a"
         lines.append(
@@ -258,12 +274,18 @@ def main() -> int:
     with stats_json.open("r", encoding="utf-8") as f:
         stats = json.load(f)
 
+    cluster_feature_names = [
+        feature_name for feature_name in REQUIRED_FEATURES if feature_name not in args.exclude_features
+    ]
+
     missing_rows = missing_pattern_report(stats)
     covariance_rows = covariance_condition_numbers(rows, stats)
-    video_vectors, video_ids = build_video_vectors(rows, stats)
+    video_vectors, video_ids = build_video_vectors(rows, stats, cluster_feature_names)
     cluster_rows = cluster_separability(video_vectors, args.k_values)
 
-    write_summary(missing_rows, covariance_rows, cluster_rows, len(video_ids), summary_path)
+    write_summary(
+        missing_rows, covariance_rows, cluster_rows, len(video_ids), cluster_feature_names, summary_path
+    )
     print(f"Diagnosis summary written: {summary_path}")
     return 0
 
