@@ -16,6 +16,11 @@ from pipeline.run_analysis import EVENT_NAMES, REQUIRED_FEATURES
 
 CIRCULAR_FEATURES = {"shoulder_tilt", "hip_tilt"}
 
+SHRINKAGE_TRIGGER_CONDITION = 50.0
+SHRINKAGE_TARGET_CONDITION = 30.0
+SHRINKAGE_MAX_ALPHA = 0.5
+SHRINKAGE_STEP = 0.05
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Compute pro feature reliability statistics.")
@@ -23,6 +28,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-json", default="data/pro_feature_stats_reliability.json")
     parser.add_argument("--summary", default="outputs/pro_feature_reliability_summary.txt")
     parser.add_argument("--stats-csv", default="data/pro_feature_stats_reliability.csv")
+    parser.add_argument("--covariance-json", default="data/pro_feature_covariance.json")
     return parser.parse_args()
 
 
@@ -154,6 +160,110 @@ def compute_stats(rows: list[dict]) -> dict:
     return stats
 
 
+def event_feature_vector(
+    row: dict, circular_centers: dict[str, float], feature_names: list[str]
+) -> list[float] | None:
+    values = []
+    for feature_name in feature_names:
+        value = as_float(row.get(feature_name))
+        if value is None:
+            return None
+        if feature_name in CIRCULAR_FEATURES:
+            value = circular_delta(value, circular_centers[feature_name])
+        values.append(value)
+    return values
+
+
+def shrink_covariance(cov: np.ndarray) -> tuple[np.ndarray, float, float, float]:
+    condition_before = float(np.linalg.cond(cov))
+    if condition_before <= SHRINKAGE_TRIGGER_CONDITION:
+        return cov, condition_before, condition_before, 0.0
+
+    dimension = cov.shape[0]
+    avg_variance = float(np.trace(cov) / dimension)
+    alpha = 0.0
+    shrunk = cov
+    condition_after = condition_before
+    while alpha < SHRINKAGE_MAX_ALPHA and condition_after > SHRINKAGE_TARGET_CONDITION:
+        alpha += SHRINKAGE_STEP
+        shrunk = (1.0 - alpha) * cov + alpha * avg_variance * np.eye(dimension)
+        condition_after = float(np.linalg.cond(shrunk))
+
+    return shrunk, condition_before, condition_after, float(alpha)
+
+
+def compute_covariance_stats(rows: list[dict], stats: dict) -> dict:
+    grouped: dict[int, list[dict]] = defaultdict(list)
+    for row in rows:
+        grouped[int(row["event_index"])].append(row)
+
+    events: dict[str, dict] = {}
+    for event_index in range(len(EVENT_NAMES)):
+        circular_centers = {
+            feature_name: stats[str(event_index)][feature_name]["mean"]
+            for feature_name in CIRCULAR_FEATURES
+        }
+        mean_vector = [stats[str(event_index)][feature_name]["mean"] for feature_name in REQUIRED_FEATURES]
+
+        complete_rows = []
+        for row in grouped.get(event_index, []):
+            vector = event_feature_vector(row, circular_centers, REQUIRED_FEATURES)
+            if vector is not None:
+                complete_rows.append(vector)
+
+        n_complete = len(complete_rows)
+        if n_complete < len(REQUIRED_FEATURES) + 1:
+            events[str(event_index)] = {
+                "feature_order": REQUIRED_FEATURES,
+                "mean": mean_vector,
+                "n_complete": n_complete,
+                "covariance": None,
+                "precision": None,
+                "condition_number_before_shrinkage": None,
+                "condition_number_after_shrinkage": None,
+                "shrinkage_alpha": None,
+            }
+            continue
+
+        matrix = np.asarray(complete_rows, dtype=float)
+        cov = np.cov(matrix, rowvar=False)
+        shrunk_cov, condition_before, condition_after, alpha = shrink_covariance(cov)
+        precision = np.linalg.inv(shrunk_cov)
+        assert np.all(np.isfinite(precision))
+
+        events[str(event_index)] = {
+            "feature_order": REQUIRED_FEATURES,
+            "mean": mean_vector,
+            "n_complete": n_complete,
+            "covariance": shrunk_cov.tolist(),
+            "precision": precision.tolist(),
+            "condition_number_before_shrinkage": condition_before,
+            "condition_number_after_shrinkage": condition_after,
+            "shrinkage_alpha": alpha,
+        }
+
+    return {
+        "metadata": {
+            "source": "data/pro_feature_raw.csv",
+            "features": REQUIRED_FEATURES,
+            "circular_features": sorted(CIRCULAR_FEATURES),
+            "event_names": EVENT_NAMES,
+            "shrinkage_rule": (
+                f"If condition number > {SHRINKAGE_TRIGGER_CONDITION}, shrink toward "
+                f"(avg_variance * I) in steps of {SHRINKAGE_STEP} until condition number "
+                f"<= {SHRINKAGE_TARGET_CONDITION} or alpha reaches {SHRINKAGE_MAX_ALPHA}."
+            ),
+        },
+        "events": events,
+    }
+
+
+def write_covariance_json(covariance_stats: dict, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as f:
+        json.dump(covariance_stats, f, indent=2, ensure_ascii=False)
+
+
 def write_stats_csv(stats: dict, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
@@ -257,9 +367,14 @@ def main() -> int:
     write_stats_csv(stats, stats_csv)
     write_summary(stats, summary_path)
 
+    covariance_json = Path(args.covariance_json)
+    covariance_stats = compute_covariance_stats(rows, stats)
+    write_covariance_json(covariance_stats, covariance_json)
+
     print(f"Reliability JSON written: {output_json}")
     print(f"Reliability CSV written: {stats_csv}")
     print(f"Summary written: {summary_path}")
+    print(f"Covariance JSON written: {covariance_json}")
     return 0
 
 

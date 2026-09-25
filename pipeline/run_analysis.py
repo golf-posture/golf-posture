@@ -10,6 +10,7 @@ from typing import Any
 
 import cv2
 import numpy as np
+from scipy.stats import chi2
 
 
 EVENT_NAMES = [
@@ -83,6 +84,11 @@ def parse_args() -> argparse.Namespace:
         "--reliability-stats",
         default="data/pro_feature_stats_reliability.json",
         help="Optional reliability stats JSON. Used when the file exists.",
+    )
+    parser.add_argument(
+        "--covariance-stats",
+        default="data/pro_feature_covariance.json",
+        help="Optional per-event covariance/precision JSON for the Mahalanobis combined score.",
     )
     parser.add_argument(
         "--reference-skeletons",
@@ -565,6 +571,67 @@ def feedback_for_event(
     return feedback
 
 
+COMBINED_EXCELLENT_PERCENTILE = 68.27  # ~1 sigma two-tailed coverage, matches grade_from_z |z|<=1
+COMBINED_GOOD_PERCENTILE = 95.45  # ~2 sigma two-tailed coverage, matches grade_from_z |z|<=2
+
+
+def grade_from_combined_percentile(percentile: float | None) -> str:
+    if percentile is None:
+        return "unavailable"
+    if percentile <= COMBINED_EXCELLENT_PERCENTILE:
+        return "Excellent"
+    if percentile <= COMBINED_GOOD_PERCENTILE:
+        return "Good"
+    return "Needs Improvement"
+
+
+def mahalanobis_combined_score(
+    features: dict[str, float | None],
+    event_idx: int,
+    covariance_stats: dict[str, Any] | None,
+) -> dict[str, Any]:
+    item: dict[str, Any] = {
+        "distance": None,
+        "percentile": None,
+        "grade": "unavailable",
+        "shrinkage_alpha": None,
+        "message": "",
+    }
+    event_stats = (covariance_stats or {}).get("events", {}).get(str(event_idx))
+    if event_stats is None or event_stats.get("precision") is None:
+        item["message"] = "Combined covariance stats not available for this event."
+        return item
+
+    feature_order = event_stats["feature_order"]
+    mean_vector = event_stats["mean"]
+    diffs = []
+    for feature_name, mean in zip(feature_order, mean_vector):
+        value = features.get(feature_name)
+        if value is None:
+            item["message"] = f"Feature '{feature_name}' unavailable, cannot compute combined score."
+            return item
+        if feature_name in CIRCULAR_FEATURES:
+            diffs.append(circular_delta(value, mean))
+        else:
+            diffs.append(value - mean)
+
+    diff_vector = np.asarray(diffs, dtype=float)
+    precision = np.asarray(event_stats["precision"], dtype=float)
+    squared_distance = max(float(diff_vector @ precision @ diff_vector), 0.0)
+    distance = float(np.sqrt(squared_distance))
+    percentile = float(chi2.cdf(squared_distance, df=len(feature_order))) * 100.0
+
+    item["distance"] = distance
+    item["percentile"] = percentile
+    item["shrinkage_alpha"] = event_stats.get("shrinkage_alpha")
+    item["grade"] = grade_from_combined_percentile(percentile)
+    item["message"] = (
+        f"combined: {item['grade']} (mahalanobis={distance:.2f}, "
+        f"percentile={percentile:.1f}, features={feature_order})"
+    )
+    return item
+
+
 def count_features(features: dict[str, float | None]) -> int:
     return sum(1 for name in REQUIRED_FEATURES if features.get(name) is not None)
 
@@ -871,6 +938,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     video_path = Path(args.video)
     stats_path = Path(args.pro_stats)
     reliability_stats_path = Path(args.reliability_stats)
+    covariance_stats_path = Path(args.covariance_stats)
     reference_skeletons_path = Path(args.reference_skeletons)
     checkpoint_path = (
         Path(args.checkpoint)
@@ -886,6 +954,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         "checkpoint_path": None if args.mock_events else str(checkpoint_path),
         "pro_stats_path": str(stats_path),
         "reliability_stats_path": str(reliability_stats_path),
+        "covariance_stats_path": str(covariance_stats_path),
         "reference_skeletons_path": str(reference_skeletons_path),
         "reference_skeletons_available": False,
         "output_mode": None,
@@ -912,6 +981,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         result["errors"].append(str(exc))
         return result, 1
     reliability_stats = load_optional_stats(reliability_stats_path)
+    covariance_stats = load_optional_stats(covariance_stats_path)
     reference_skeletons = load_reference_skeletons(reference_skeletons_path)
     if reference_skeletons is None:
         result["errors"].append(
@@ -971,6 +1041,9 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
                         stats,
                         reliability_stats,
                     ),
+                    "combined_score": mahalanobis_combined_score(
+                        {name: None for name in REQUIRED_FEATURES}, event_idx, covariance_stats
+                    ),
                     "pose_candidates": {},
                     "selected_landmarks": None,
                     "notes": ["Could not read event frame."],
@@ -1008,6 +1081,9 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
                 "selected_landmarks": selected.get("landmarks"),
                 "features": selected["features"],
                 "feedback": feedback_for_event(event_idx, selected["features"], stats, reliability_stats),
+                "combined_score": mahalanobis_combined_score(
+                    selected["features"], event_idx, covariance_stats
+                ),
                 "pose_candidates": {
                     "mediapipe": media_result,
                     "yolopose": yolo_result,
