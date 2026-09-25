@@ -660,6 +660,8 @@ def dynamics_feedback_for_pair(
             "pro_median_delta": None,
             "robust_z": None,
             "grade": "unavailable",
+            "reliability": "unknown",
+            "feedback_strength": "normal",
             "message": "",
         }
         start_value = start_features.get(feature_name)
@@ -674,6 +676,11 @@ def dynamics_feedback_for_pair(
             item["message"] = f"{label} {feature_name}: not enough pro samples for this event pair."
             feedback[feature_name] = item
             continue
+
+        reliability = stat.get("reliability", "unknown")
+        feedback_strength = stat.get("feedback_strength", "normal")
+        item["reliability"] = reliability
+        item["feedback_strength"] = feedback_strength
 
         if feature_name in CIRCULAR_FEATURES:
             delta = circular_delta(end_value, start_value)
@@ -698,8 +705,14 @@ def dynamics_feedback_for_pair(
         item["grade"] = grade_from_z(robust_z)
         item["message"] = (
             f"{label} {feature_name}: {item['grade']} "
-            f"(delta={delta:.2f}, pro_median_delta={median_delta:.2f}, robust_z={robust_z:.2f})"
+            f"(delta={delta:.2f}, pro_median_delta={median_delta:.2f}, robust_z={robust_z:.2f}, "
+            f"reliability={reliability})"
         )
+        if reliability == "low" and item["grade"] == "Needs Improvement":
+            item["message"] += (
+                " Low reliability: this event-pair/feature has high individual variation "
+                "(sometimes genuinely bimodal), treat as a reference signal, not a strong correction."
+            )
         feedback[feature_name] = item
     return feedback
 

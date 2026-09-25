@@ -29,7 +29,8 @@
 - 범위를 **스윙 다이내믹스(이벤트 간 delta)만**으로 좁힘 — 문구 계층(B2/B3/B4)은 이번 3주차에서 제외하고 별도 계획으로 이후 다룸. 클러스터링이 스킵되어 원 계획의 "클러스터 결과 반영" 부분도 자연히 제외.
 - 신규 `pipeline/compute_dynamics_stats.py`: 연속 이벤트쌍 7개 × 5 feature = 35 조합 delta를 **median/MAD 강건 통계**로 계산(2주차 교훈 선반영) → `data/pro_dynamics_stats.json`.
 - `run_analysis.py`: `dynamics_feedback_for_pair()` 신규, 결과 JSON에 최상위 `dynamics` 섹션 추가(기존 필드 변경 없음, additive-only).
-- 상세 내용: `documents/feedback_v2_week3_notes.md`. 6개 영상 전부 기존 필드 byte-level 동일 재확인(회귀 없음).
+- **재검증(2026-09-25) 중 발견/수정**: self-consistency 재채점으로 `Mid-follow-through->Finish`의 `shoulder_tilt` delta가 심하게 miscalibrate됨을 발견(Excellent 56.7%/Good 4.1%/Needs 38.6%, 타 구간 대비 이상). 히스토그램 조사 결과 circular 버그가 아니라 **진짜 이변량(bimodal) 분포**(Finish 단계 개인차가 크다는 기존 README 노트와 일치)로 확인 → 새 로직 대신 v1부터 있던 `classify_reliability()`를 재사용해 각 (event-pair, feature)에 reliability(high/medium/low) 태깅, low+Needs Improvement 조합에는 "참고용 신호" 경고 문구 추가. 수정 후 `Mid-follow-through->Finish`가 `shoulder_tilt=low/hip_tilt=medium/spine_tilt=high`로 정확히 분류됨을 확인.
+- 상세 내용: `documents/feedback_v2_week3_notes.md`. 6개 영상 전부 기존 필드 byte-level 동일 재확인(회귀 없음, 재검증 포함 2회 확인).
 - **남은 것**: 다이내믹스/결합 스코어 결과를 실제 한국어 피드백 문장(`generate_feedback_report.py`)에 반영하는 문구 계층 작업은 아직 미착수 — 별도 계획으로 진행 예정.
 
 ## 배경 - v1 계획과의 관계

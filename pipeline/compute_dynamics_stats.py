@@ -6,7 +6,13 @@ from collections import defaultdict
 from pathlib import Path
 from statistics import median
 
-from pipeline.compute_reliability_stats import CIRCULAR_FEATURES, as_float, circular_delta, read_raw_rows
+from pipeline.compute_reliability_stats import (
+    CIRCULAR_FEATURES,
+    as_float,
+    circular_delta,
+    classify_reliability,
+    read_raw_rows,
+)
 from pipeline.run_analysis import EVENT_NAMES, REQUIRED_FEATURES
 
 MIN_SAMPLES_FOR_DYNAMICS = 30
@@ -83,16 +89,28 @@ def compute_dynamics_stats(rows: list[dict]) -> dict:
             n = len(values)
             detection_rate = n / total_videos if total_videos else 0.0
             if n < MIN_SAMPLES_FOR_DYNAMICS:
+                reliability, strength, reason = classify_reliability(None, detection_rate)
                 features_output[feature_name] = {
                     "median": None,
                     "mad": None,
                     "scaled_mad": None,
                     "n": n,
                     "detection_rate": detection_rate,
+                    "reliability": reliability,
+                    "feedback_strength": strength,
+                    "reliability_reason": reason,
                 }
                 continue
             stats = robust_stats(values)
             stats["detection_rate"] = detection_rate
+            # Reuse the same dispersion/detection_rate reliability rule as compute_feature_stats:
+            # a large scaled_mad here usually means a genuinely bimodal/high-variance delta
+            # (e.g. Mid-follow-through->Finish shoulder_tilt), not something median/MAD alone
+            # should be trusted to grade strongly.
+            reliability, strength, reason = classify_reliability(stats["scaled_mad"], detection_rate)
+            stats["reliability"] = reliability
+            stats["feedback_strength"] = strength
+            stats["reliability_reason"] = reason
             features_output[feature_name] = stats
         pairs_output[label] = {
             "start_event": EVENT_NAMES[start_idx],
@@ -131,7 +149,8 @@ def write_summary(dynamics_stats: dict, summary_path: Path) -> None:
                 continue
             lines.append(
                 f"  {feature_name:20s} n={stats['n']:4d} median={stats['median']:+7.2f} "
-                f"scaled_mad={stats['scaled_mad']:6.2f} detect={stats['detection_rate']:.3f}"
+                f"scaled_mad={stats['scaled_mad']:6.2f} detect={stats['detection_rate']:.3f} "
+                f"reliability={stats['reliability']}"
             )
     with summary_path.open("w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")

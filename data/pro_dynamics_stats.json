@@ -39,35 +39,50 @@
           "mad": 6.452181623950992,
           "scaled_mad": 9.56600447566974,
           "n": 284,
-          "detection_rate": 0.8304093567251462
+          "detection_rate": 0.8304093567251462,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
         },
         "lead_elbow_angle": {
           "median": -5.119941618440137,
           "mad": 5.027219512227873,
           "scaled_mad": 7.453355648829044,
           "n": 326,
-          "detection_rate": 0.9532163742690059
+          "detection_rate": 0.9532163742690059,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
         },
         "shoulder_tilt": {
           "median": -23.420284772001764,
           "mad": 5.2416085481081325,
           "scaled_mad": 7.771208833425117,
           "n": 338,
-          "detection_rate": 0.9883040935672515
+          "detection_rate": 0.9883040935672515,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
         },
         "hip_tilt": {
           "median": -3.800526250096709,
           "mad": 2.182397953539649,
           "scaled_mad": 3.2356232059178835,
           "n": 338,
-          "detection_rate": 0.9883040935672515
+          "detection_rate": 0.9883040935672515,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
         },
         "spine_tilt": {
           "median": 3.5508543181453858,
           "mad": 1.8873928134556617,
           "scaled_mad": 2.7982485852293637,
           "n": 338,
-          "detection_rate": 0.9883040935672515
+          "detection_rate": 0.9883040935672515,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
         }
       }
     },
@@ -82,35 +97,50 @@
           "mad": 12.21533894427138,
           "scaled_mad": 18.11046151877675,
           "n": 108,
-          "detection_rate": 0.3157894736842105
+          "detection_rate": 0.3157894736842105,
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate"
         },
         "lead_elbow_angle": {
           "median": -20.05733185906203,
           "mad": 7.811697733763481,
           "scaled_mad": 11.581623060077735,
           "n": 317,
-          "detection_rate": 0.9269005847953217
+          "detection_rate": 0.9269005847953217,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
         },
         "shoulder_tilt": {
           "median": -3.5747535818603495,
           "mad": 7.713723599461147,
           "scaled_mad": 11.436366608561096,
           "n": 332,
-          "detection_rate": 0.9707602339181286
+          "detection_rate": 0.9707602339181286,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
         },
         "hip_tilt": {
           "median": -0.5626325953576128,
           "mad": 1.5217710256355446,
           "scaled_mad": 2.256177722607258,
           "n": 332,
-          "detection_rate": 0.9707602339181286
+          "detection_rate": 0.9707602339181286,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
         },
         "spine_tilt": {
           "median": 0.1106379217916853,
           "mad": 1.3378769008374438,
           "scaled_mad": 1.983536293181594,
           "n": 332,
-          "detection_rate": 0.9707602339181286
+          "detection_rate": 0.9707602339181286,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
         }
       }
     },
@@ -125,35 +155,50 @@
           "mad": 16.777343931895466,
           "scaled_mad": 24.874090113428217,
           "n": 76,
-          "detection_rate": 0.2222222222222222
+          "detection_rate": 0.2222222222222222,
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate"
         },
         "lead_elbow_angle": {
           "median": -34.12260615268067,
           "mad": 18.074318849299964,
           "scaled_mad": 26.796985125972125,
           "n": 310,
-          "detection_rate": 0.9064327485380117
+          "detection_rate": 0.9064327485380117,
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate"
         },
         "shoulder_tilt": {
           "median": 13.159489460914557,
           "mad": 11.218676869682668,
           "scaled_mad": 16.63281032699152,
           "n": 335,
-          "detection_rate": 0.97953216374269
+          "detection_rate": 0.97953216374269,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
         },
         "hip_tilt": {
           "median": 1.5583089225370088,
           "mad": 1.9624466191407635,
           "scaled_mad": 2.9095233575380957,
           "n": 335,
-          "detection_rate": 0.97953216374269
+          "detection_rate": 0.97953216374269,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
         },
         "spine_tilt": {
           "median": 0.05215664237611817,
           "mad": 2.1724163092233035,
           "scaled_mad": 3.22082442005447,
           "n": 335,
-          "detection_rate": 0.97953216374269
+          "detection_rate": 0.97953216374269,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
         }
       }
     },
@@ -168,35 +213,50 @@
           "mad": 24.208226800657748,
           "scaled_mad": 35.891117054655176,
           "n": 78,
-          "detection_rate": 0.22807017543859648
+          "detection_rate": 0.22807017543859648,
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate"
         },
         "lead_elbow_angle": {
           "median": 31.05642694796041,
           "mad": 16.17291836631084,
           "scaled_mad": 23.97796876989245,
           "n": 312,
-          "detection_rate": 0.9122807017543859
+          "detection_rate": 0.9122807017543859,
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate"
         },
         "shoulder_tilt": {
           "median": 1.5463457485049048,
           "mad": 9.50920745264932,
           "scaled_mad": 14.098350969297883,
           "n": 341,
-          "detection_rate": 0.9970760233918129
+          "detection_rate": 0.9970760233918129,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
         },
         "hip_tilt": {
           "median": 0.13487978051955452,
           "mad": 2.520881326176891,
           "scaled_mad": 3.7374586541898585,
           "n": 341,
-          "detection_rate": 0.9970760233918129
+          "detection_rate": 0.9970760233918129,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
         },
         "spine_tilt": {
           "median": 0.8296079587454808,
           "mad": 2.0112993144175055,
           "scaled_mad": 2.9819523635553935,
           "n": 341,
-          "detection_rate": 0.9970760233918129
+          "detection_rate": 0.9970760233918129,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
         }
       }
     },
@@ -211,35 +271,50 @@
           "mad": 18.122247787682454,
           "scaled_mad": 26.868044570018004,
           "n": 148,
-          "detection_rate": 0.4327485380116959
+          "detection_rate": 0.4327485380116959,
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate"
         },
         "lead_elbow_angle": {
           "median": 26.892765661952694,
           "mad": 8.581676478105152,
           "scaled_mad": 12.723193546438697,
           "n": 307,
-          "detection_rate": 0.8976608187134503
+          "detection_rate": 0.8976608187134503,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
         },
         "shoulder_tilt": {
           "median": 31.913108016227255,
           "mad": 8.377609116606692,
           "scaled_mad": 12.420643276281082,
           "n": 341,
-          "detection_rate": 0.9970760233918129
+          "detection_rate": 0.9970760233918129,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
         },
         "hip_tilt": {
           "median": 5.604619593538814,
           "mad": 2.7605400545307077,
           "scaled_mad": 4.092776684847227,
           "n": 341,
-          "detection_rate": 0.9970760233918129
+          "detection_rate": 0.9970760233918129,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
         },
         "spine_tilt": {
           "median": 8.335573827194843,
           "mad": 2.768120776459984,
           "scaled_mad": 4.104015863179572,
           "n": 341,
-          "detection_rate": 0.9970760233918129
+          "detection_rate": 0.9970760233918129,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
         }
       }
     },
@@ -254,35 +329,50 @@
           "mad": 9.859214268087499,
           "scaled_mad": 14.617271073866524,
           "n": 335,
-          "detection_rate": 0.97953216374269
+          "detection_rate": 0.97953216374269,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
         },
         "lead_elbow_angle": {
           "median": -7.367031375635634,
           "mad": 8.988004280475536,
           "scaled_mad": 13.32561514623303,
           "n": 279,
-          "detection_rate": 0.8157894736842105
+          "detection_rate": 0.8157894736842105,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
         },
         "shoulder_tilt": {
           "median": 11.788302925703647,
           "mad": 6.691696040154568,
           "scaled_mad": 9.921108549133162,
           "n": 341,
-          "detection_rate": 0.9970760233918129
+          "detection_rate": 0.9970760233918129,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
         },
         "hip_tilt": {
           "median": 1.567801633517007,
           "mad": 2.6203757362635542,
           "scaled_mad": 3.8849690665843455,
           "n": 341,
-          "detection_rate": 0.9970760233918129
+          "detection_rate": 0.9970760233918129,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
         },
         "spine_tilt": {
           "median": 1.1517296810270325,
           "mad": 2.045232288172559,
           "scaled_mad": 3.032261390444636,
           "n": 341,
-          "detection_rate": 0.9970760233918129
+          "detection_rate": 0.9970760233918129,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
         }
       }
     },
@@ -297,35 +387,50 @@
           "mad": 31.08923166665081,
           "scaled_mad": 46.09289486897649,
           "n": 266,
-          "detection_rate": 0.7777777777777778
+          "detection_rate": 0.7777777777777778,
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate"
         },
         "lead_elbow_angle": {
           "median": -85.06827059209849,
           "mad": 39.6860401101128,
           "scaled_mad": 58.838523067253234,
           "n": 129,
-          "detection_rate": 0.37719298245614036
+          "detection_rate": 0.37719298245614036,
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate"
         },
         "shoulder_tilt": {
           "median": -27.31448447470254,
           "mad": 24.008361885598617,
           "scaled_mad": 35.59479733158851,
           "n": 340,
-          "detection_rate": 0.9941520467836257
+          "detection_rate": 0.9941520467836257,
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate"
         },
         "hip_tilt": {
           "median": -9.45010548647329,
           "mad": 7.507238375492506,
           "scaled_mad": 11.130231615505188,
           "n": 340,
-          "detection_rate": 0.9941520467836257
+          "detection_rate": 0.9941520467836257,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
         },
         "spine_tilt": {
           "median": -13.852015667311466,
           "mad": 3.7415930189999607,
           "scaled_mad": 5.547285809969341,
           "n": 340,
-          "detection_rate": 0.9941520467836257
+          "detection_rate": 0.9941520467836257,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
         }
       }
     }
