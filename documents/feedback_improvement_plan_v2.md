@@ -25,9 +25,12 @@
 - 상세 내용: `documents/feedback_v2_week2_notes.md`.
 - 6개 영상 전부 기존 `z_score`/`grade` byte-level 동일함을 반복 검증(회귀 없음).
 
-### 3주차 — 진행 중
-- 범위를 **스윙 다이내믹스(이벤트 간 delta)만**으로 좁힘 — 문구 계층(B2/B3/B4)은 이번 3주차에서 제외하고 별도 계획으로 이후 다룸.
-- 클러스터링이 스킵되어 원 계획의 "클러스터·다이내믹스 결과를 문구에 반영" 중 클러스터 부분은 자연히 제외됨.
+### 3주차 — 스윙 다이내믹스 (완료, 문구 계층 제외)
+- 범위를 **스윙 다이내믹스(이벤트 간 delta)만**으로 좁힘 — 문구 계층(B2/B3/B4)은 이번 3주차에서 제외하고 별도 계획으로 이후 다룸. 클러스터링이 스킵되어 원 계획의 "클러스터 결과 반영" 부분도 자연히 제외.
+- 신규 `pipeline/compute_dynamics_stats.py`: 연속 이벤트쌍 7개 × 5 feature = 35 조합 delta를 **median/MAD 강건 통계**로 계산(2주차 교훈 선반영) → `data/pro_dynamics_stats.json`.
+- `run_analysis.py`: `dynamics_feedback_for_pair()` 신규, 결과 JSON에 최상위 `dynamics` 섹션 추가(기존 필드 변경 없음, additive-only).
+- 상세 내용: `documents/feedback_v2_week3_notes.md`. 6개 영상 전부 기존 필드 byte-level 동일 재확인(회귀 없음).
+- **남은 것**: 다이내믹스/결합 스코어 결과를 실제 한국어 피드백 문장(`generate_feedback_report.py`)에 반영하는 문구 계층 작업은 아직 미착수 — 별도 계획으로 진행 예정.
 
 ## 배경 - v1 계획과의 관계
 
