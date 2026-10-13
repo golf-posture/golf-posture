@@ -82,18 +82,44 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--reliability-stats",
-        default="data/pro_feature_stats_reliability.json",
-        help="Optional reliability stats JSON. Used when the file exists.",
+        help=(
+            "Optional reliability stats JSON. Used when the file exists. Defaults to "
+            "data/pro_feature_stats_reliability.json (or data/tracked/... with --reference tracked)."
+        ),
     )
     parser.add_argument(
         "--covariance-stats",
-        default="data/pro_feature_covariance.json",
-        help="Optional per-event covariance/precision JSON for the Mahalanobis combined score.",
+        help=(
+            "Optional per-event covariance/precision JSON for the Mahalanobis combined score. Defaults to "
+            "data/pro_feature_covariance.json (or data/tracked/... with --reference tracked)."
+        ),
     )
     parser.add_argument(
         "--dynamics-stats",
-        default="data/pro_dynamics_stats.json",
-        help="Optional event-to-event delta (swing dynamics) stats JSON.",
+        help=(
+            "Optional event-to-event delta (swing dynamics) stats JSON. Defaults to "
+            "data/pro_dynamics_stats.json (or data/tracked/... with --reference tracked)."
+        ),
+    )
+    parser.add_argument(
+        "--extraction",
+        choices=["tracked", "static"],
+        default="tracked",
+        help=(
+            "How user features are extracted. tracked: track the swing sequentially (video mode), recover "
+            "hidden-arm values and drop QC-flagged elbows as unavailable (mediapipe backend only). "
+            "static: legacy isolated per-frame extraction. Independent of --reference."
+        ),
+    )
+    parser.add_argument(
+        "--reference",
+        choices=["legacy", "tracked"],
+        default="legacy",
+        help=(
+            "Which pro reference statistics to grade against. legacy: data/*.json (the original reference). "
+            "tracked: data/tracked/*.json, rebuilt from QC-cleaned tracked pro data (narrower spreads, "
+            "so grading is stricter). Independent of --extraction."
+        ),
     )
     parser.add_argument(
         "--reference-skeletons",
@@ -212,6 +238,32 @@ def load_optional_stats(path: Path) -> dict[str, Any] | None:
     if not path.exists():
         return None
     return load_stats(path)
+
+
+TRACKED_STATS_DIR = "data/tracked"
+LEGACY_STATS_DIR = "data"
+
+
+def effective_extraction(requested: str, pose_backend: str) -> tuple[str, str | None]:
+    """Tracked extraction runs MediaPipe over the swing; other backends keep the per-frame (static) path."""
+    if requested == "tracked" and pose_backend != "mediapipe":
+        return "static", (
+            f"tracked extraction supports the mediapipe backend only; "
+            f"used static per-frame extraction for --pose-backend {pose_backend}"
+        )
+    return requested, None
+
+
+def resolve_stats_path(value: str | None, reference: str, filename: str) -> Path:
+    """Explicit path wins; otherwise the chosen reference set ('legacy' or 'tracked') decides the directory.
+
+    The reference set is independent of the extraction mode: how user features are extracted does not
+    change which pro statistics they are graded against.
+    """
+    if value:
+        return Path(value)
+    directory = TRACKED_STATS_DIR if reference == "tracked" else LEGACY_STATS_DIR
+    return Path(directory) / filename
 
 
 def video_frame_count(video_path: Path) -> int:
@@ -371,12 +423,13 @@ def detect_swingnet_events(
 class MediaPipePoseBackend:
     name = "mediapipe"
 
-    def __init__(self):
+    def __init__(self, model_complexity: int = 1, min_visibility: float = 0.5):
         import mediapipe as mp
 
+        self._min_visibility = min_visibility
         self._pose = mp.solutions.pose.Pose(
             static_image_mode=True,
-            model_complexity=1,
+            model_complexity=model_complexity,
             min_detection_confidence=0.5,
         )
 
@@ -391,7 +444,7 @@ class MediaPipePoseBackend:
         landmarks = {}
         for name, idx in LANDMARK_NAMES.items():
             point = raw[idx]
-            if point.visibility < 0.5:
+            if point.visibility < self._min_visibility:
                 landmarks[name] = None
             else:
                 landmarks[name] = (
@@ -1021,10 +1074,13 @@ def write_outputs(result: dict[str, Any], json_path: Path, txt_path: Path) -> No
 
 def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     video_path = Path(args.video)
+    extraction, extraction_note = effective_extraction(args.extraction, args.pose_backend)
     stats_path = Path(args.pro_stats)
-    reliability_stats_path = Path(args.reliability_stats)
-    covariance_stats_path = Path(args.covariance_stats)
-    dynamics_stats_path = Path(args.dynamics_stats)
+    reliability_stats_path = resolve_stats_path(
+        args.reliability_stats, args.reference, "pro_feature_stats_reliability.json"
+    )
+    covariance_stats_path = resolve_stats_path(args.covariance_stats, args.reference, "pro_feature_covariance.json")
+    dynamics_stats_path = resolve_stats_path(args.dynamics_stats, args.reference, "pro_dynamics_stats.json")
     reference_skeletons_path = Path(args.reference_skeletons)
     checkpoint_path = (
         Path(args.checkpoint)
@@ -1037,6 +1093,9 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         "mock_events": bool(args.mock_events),
         "handedness": args.handedness,
         "pose_backend": args.pose_backend,
+        "extraction": extraction,
+        "extraction_note": extraction_note,
+        "reference": args.reference,
         "checkpoint_path": None if args.mock_events else str(checkpoint_path),
         "pro_stats_path": str(stats_path),
         "reliability_stats_path": str(reliability_stats_path),
@@ -1088,13 +1147,31 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         result["errors"].append(str(exc))
         return result, 1
 
+    if args.reference == "tracked" and not reliability_stats_path.exists():
+        result["errors"].append(
+            f"Tracked reference stats not found: {reliability_stats_path}. Build them with "
+            "documents/feedback_v2_work_log_2026-10-13.md (section 'tracked 기준 통계 생성'), "
+            "or run with --reference legacy."
+        )
+
+    tracked_events = None
+    if extraction == "tracked":
+        try:
+            from pipeline.user_tracking import analyze_user_video
+
+            tracked_events = analyze_user_video(video_path, [int(f) for f in event_frames], args.handedness)
+        except Exception as exc:
+            result["errors"].append(f"Tracked pose extraction failed: {type(exc).__name__}: {exc}")
+            return result, 1
+
     attempt_media = args.pose_backend in {"mediapipe", "auto", "hybrid"}
     attempt_yolo = args.pose_backend in {"yolopose", "auto", "hybrid"}
     media_backend = None
     yolo_backend = None
     if attempt_media:
         result["pose_backend_comparison"]["mediapipe"]["attempted"] = True
-        media_backend = init_backend("mediapipe", result["pose_backend_comparison"]["mediapipe"]["notes"])
+        if tracked_events is None:
+            media_backend = init_backend("mediapipe", result["pose_backend_comparison"]["mediapipe"]["notes"])
     if attempt_yolo:
         result["pose_backend_comparison"]["yolopose"]["attempted"] = True
         yolo_backend = init_backend("yolopose", result["pose_backend_comparison"]["yolopose"]["notes"])
@@ -1143,7 +1220,10 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
 
             cv2.imwrite(str(frame_dir / safe_frame_name(event_idx, event_name)), frame)
 
-            media_result = analyze_pose_backend(media_backend, frame, args.handedness) if media_backend else None
+            if tracked_events is not None:
+                media_result = tracked_events[event_idx]
+            else:
+                media_result = analyze_pose_backend(media_backend, frame, args.handedness) if media_backend else None
             yolo_result = analyze_pose_backend(yolo_backend, frame, args.handedness) if yolo_backend else None
 
             if media_result and media_result["pose_detected"]:
