@@ -1,0 +1,2378 @@
+{
+  "video_path": "raw_videos\\test2.mp4",
+  "mock_events": false,
+  "handedness": "right",
+  "pose_backend": "mediapipe",
+  "extraction": "tracked",
+  "extraction_note": null,
+  "reference": "legacy",
+  "checkpoint_path": "event_detection\\models\\swingnet_1800.pth.tar",
+  "pro_stats_path": "data\\pro_angle_stats.json",
+  "reliability_stats_path": "data\\pro_feature_stats_reliability.json",
+  "covariance_stats_path": "data\\pro_feature_covariance.json",
+  "dynamics_stats_path": "data\\pro_dynamics_stats.json",
+  "reference_skeletons_path": "data\\pro_reference_skeletons.json",
+  "reference_skeletons_available": true,
+  "output_mode": "directory",
+  "output_dir": "outputs\\baseline_snapshot_tracked\\test2",
+  "json_result_path": "outputs\\baseline_snapshot_tracked\\test2\\test2_result.json",
+  "text_summary_path": "outputs\\baseline_snapshot_tracked\\test2\\test2_summary.txt",
+  "events": {
+    "Address": {
+      "frame_index": 148,
+      "confidence": 0.12679423391819,
+      "pose_detected": true,
+      "selected_pose_backend": "mediapipe",
+      "selected_landmarks": {
+        "NOSE": [
+          277.0476043224335,
+          237.5388765335083,
+          0.999949038028717
+        ],
+        "LEFT_SHOULDER": [
+          366.0946011543274,
+          234.6621322631836,
+          0.9999676942825317
+        ],
+        "RIGHT_SHOULDER": [
+          221.00200653076172,
+          264.51147079467773,
+          0.9999606013298035
+        ],
+        "LEFT_ELBOW": [
+          342.5058603286743,
+          369.63552474975586,
+          0.9900211095809937
+        ],
+        "RIGHT_ELBOW": [
+          259.60443019866943,
+          376.39512062072754,
+          0.8251400589942932
+        ],
+        "LEFT_WRIST": [
+          320.1922416687012,
+          460.83166122436523,
+          0.9802661538124084
+        ],
+        "RIGHT_WRIST": [
+          281.2448501586914,
+          467.0375633239746,
+          0.8855217099189758
+        ],
+        "LEFT_HIP": [
+          352.2294759750366,
+          385.82902908325195,
+          0.9995946884155273
+        ],
+        "RIGHT_HIP": [
+          277.46593952178955,
+          392.0356607437134,
+          0.9996276497840881
+        ],
+        "LEFT_KNEE": [
+          367.0581579208374,
+          535.4680109024048,
+          0.9930554032325745
+        ],
+        "RIGHT_KNEE": [
+          264.26830887794495,
+          530.9276533126831,
+          0.9901379942893982
+        ],
+        "LEFT_ANKLE": [
+          362.09603548049927,
+          636.1802387237549,
+          0.9906352162361145
+        ],
+        "RIGHT_ANKLE": [
+          262.9416882991791,
+          634.0260171890259,
+          0.9865525364875793
+        ]
+      },
+      "features": {
+        "trail_elbow_angle": 174.3921100362321,
+        "lead_elbow_angle": 176.16437472383984,
+        "shoulder_tilt": -168.37495299444086,
+        "hip_tilt": -175.25436812455715,
+        "spine_tilt": 8.690574006524532
+      },
+      "feedback": {
+        "trail_elbow_angle": {
+          "value": 174.3921100362321,
+          "pro_mean": 169.30299093785527,
+          "pro_std": 10.19047596502659,
+          "z_score": 0.49939954873968073,
+          "grade": "Excellent",
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate",
+          "weighted_score": 59.5126094764667,
+          "message": "trail_elbow_angle: Excellent (value=174.39, pro_mean=169.30, pro_std=10.19, z=0.50, reliability=medium, strength=normal)"
+        },
+        "lead_elbow_angle": {
+          "value": 176.16437472383984,
+          "pro_mean": 172.63884915210426,
+          "pro_std": 14.493639539844974,
+          "z_score": 0.24324639522346606,
+          "grade": "Excellent",
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate",
+          "weighted_score": 64.89182570030721,
+          "message": "lead_elbow_angle: Excellent (value=176.16, pro_mean=172.64, pro_std=14.49, z=0.24, reliability=medium, strength=normal)"
+        },
+        "shoulder_tilt": {
+          "value": -168.37495299444086,
+          "pro_mean": -168.7029297332608,
+          "pro_std": 14.828187571464625,
+          "z_score": 0.022118464393523468,
+          "grade": "Excellent",
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate",
+          "weighted_score": 69.535512247736,
+          "message": "shoulder_tilt: Excellent (value=-168.37, pro_mean=-168.70, pro_std=14.83, z=0.02, reliability=medium, strength=normal)"
+        },
+        "hip_tilt": {
+          "value": -175.25436812455715,
+          "pro_mean": -175.47588551802897,
+          "pro_std": 11.796645188495397,
+          "z_score": 0.01877799916266545,
+          "grade": "Excellent",
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate",
+          "weighted_score": 69.60566201758402,
+          "message": "hip_tilt: Excellent (value=-175.25, pro_mean=-175.48, pro_std=11.80, z=0.02, reliability=medium, strength=normal)"
+        },
+        "spine_tilt": {
+          "value": 8.690574006524532,
+          "pro_mean": 3.1255177759704083,
+          "pro_std": 4.411759663197209,
+          "z_score": 1.2614141873995734,
+          "grade": "Good",
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate",
+          "weighted_score": 62.1575743780128,
+          "message": "spine_tilt: Good (value=8.69, pro_mean=3.13, pro_std=4.41, z=1.26, reliability=high, strength=strong)"
+        }
+      },
+      "combined_score": {
+        "distance": 1.8487294738975242,
+        "deviation_percentile": 36.413972277611286,
+        "grade": "Excellent",
+        "shrinkage_alpha": 0.0,
+        "message": "combined: Excellent (mahalanobis=1.85, deviation_percentile=36.4 [higher=more unusual], features=['trail_elbow_angle', 'lead_elbow_angle', 'shoulder_tilt', 'hip_tilt', 'spine_tilt'])"
+      },
+      "pose_candidates": {
+        "mediapipe": {
+          "pose_detected": true,
+          "features": {
+            "trail_elbow_angle": 174.3921100362321,
+            "lead_elbow_angle": 176.16437472383984,
+            "shoulder_tilt": -168.37495299444086,
+            "hip_tilt": -175.25436812455715,
+            "spine_tilt": 8.690574006524532
+          },
+          "landmarks": {
+            "NOSE": [
+              277.0476043224335,
+              237.5388765335083,
+              0.999949038028717
+            ],
+            "LEFT_SHOULDER": [
+              366.0946011543274,
+              234.6621322631836,
+              0.9999676942825317
+            ],
+            "RIGHT_SHOULDER": [
+              221.00200653076172,
+              264.51147079467773,
+              0.9999606013298035
+            ],
+            "LEFT_ELBOW": [
+              342.5058603286743,
+              369.63552474975586,
+              0.9900211095809937
+            ],
+            "RIGHT_ELBOW": [
+              259.60443019866943,
+              376.39512062072754,
+              0.8251400589942932
+            ],
+            "LEFT_WRIST": [
+              320.1922416687012,
+              460.83166122436523,
+              0.9802661538124084
+            ],
+            "RIGHT_WRIST": [
+              281.2448501586914,
+              467.0375633239746,
+              0.8855217099189758
+            ],
+            "LEFT_HIP": [
+              352.2294759750366,
+              385.82902908325195,
+              0.9995946884155273
+            ],
+            "RIGHT_HIP": [
+              277.46593952178955,
+              392.0356607437134,
+              0.9996276497840881
+            ],
+            "LEFT_KNEE": [
+              367.0581579208374,
+              535.4680109024048,
+              0.9930554032325745
+            ],
+            "RIGHT_KNEE": [
+              264.26830887794495,
+              530.9276533126831,
+              0.9901379942893982
+            ],
+            "LEFT_ANKLE": [
+              362.09603548049927,
+              636.1802387237549,
+              0.9906352162361145
+            ],
+            "RIGHT_ANKLE": [
+              262.9416882991791,
+              634.0260171890259,
+              0.9865525364875793
+            ]
+          },
+          "computed_feature_count": 5,
+          "qc": {
+            "trail": {
+              "low_vis": false,
+              "bone": false,
+              "frame": false,
+              "inconsistent": false
+            },
+            "lead": {
+              "low_vis": false,
+              "bone": false,
+              "frame": false,
+              "inconsistent": false
+            },
+            "trail_elbow_source": "direct",
+            "lead_elbow_source": "direct"
+          }
+        },
+        "yolopose": null
+      },
+      "event_frame_path": "outputs\\baseline_snapshot_tracked\\test2\\frames\\0_address.jpg",
+      "skeleton_comparison_path": "outputs\\baseline_snapshot_tracked\\test2\\skeletons\\0_address.jpg",
+      "reference_skeleton_available": true,
+      "reference_skeleton_source": 1191,
+      "skeleton_comparison_complete": true
+    },
+    "Toe-up": {
+      "frame_index": 188,
+      "confidence": 0.1984385997056961,
+      "pose_detected": true,
+      "selected_pose_backend": "mediapipe",
+      "selected_landmarks": {
+        "NOSE": [
+          320.26644945144653,
+          151.49891138076782,
+          0.999391496181488
+        ],
+        "LEFT_SHOULDER": [
+          360.09002923965454,
+          180.0268006324768,
+          0.9997877478599548
+        ],
+        "RIGHT_SHOULDER": [
+          249.79611039161682,
+          237.42658853530884,
+          0.9997341632843018
+        ],
+        "LEFT_ELBOW": [
+          399.31089878082275,
+          276.07234954833984,
+          0.971494734287262
+        ],
+        "RIGHT_ELBOW": [
+          337.83642053604126,
+          332.0741057395935,
+          0.7851681113243103
+        ],
+        "LEFT_WRIST": [
+          446.21007442474365,
+          371.7104387283325,
+          0.9602704644203186
+        ],
+        "RIGHT_WRIST": [
+          451.55482292175293,
+          382.95219898223877,
+          0.8554575443267822
+        ],
+        "LEFT_HIP": [
+          369.7917938232422,
+          391.4420557022095,
+          0.9992331266403198
+        ],
+        "RIGHT_HIP": [
+          302.85898447036743,
+          405.220627784729,
+          0.9992353916168213
+        ],
+        "LEFT_KNEE": [
+          378.9203882217407,
+          530.2224683761597,
+          0.9913268089294434
+        ],
+        "RIGHT_KNEE": [
+          289.21099305152893,
+          546.3972616195679,
+          0.9876010417938232
+        ],
+        "LEFT_ANKLE": [
+          363.4042739868164,
+          634.8184061050415,
+          0.9889907240867615
+        ],
+        "RIGHT_ANKLE": [
+          260.30840277671814,
+          636.8944787979126,
+          0.98533034324646
+        ]
+      },
+      "features": {
+        "trail_elbow_angle": 157.03264988098653,
+        "lead_elbow_angle": 176.0905013367343,
+        "shoulder_tilt": -152.5063732269576,
+        "hip_tilt": -168.36777208109356,
+        "spine_tilt": 9.398080396751116
+      },
+      "feedback": {
+        "trail_elbow_angle": {
+          "value": 157.03264988098653,
+          "pro_mean": 159.12075278691364,
+          "pro_std": 16.071053135562845,
+          "z_score": -0.12992943824611314,
+          "grade": "Excellent",
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate",
+          "weighted_score": 67.27148179683162,
+          "message": "trail_elbow_angle: Excellent (value=157.03, pro_mean=159.12, pro_std=16.07, z=-0.13, reliability=medium, strength=normal)"
+        },
+        "lead_elbow_angle": {
+          "value": 176.0905013367343,
+          "pro_mean": 166.8936481656903,
+          "pro_std": 12.325524775371768,
+          "z_score": 0.7461632132224231,
+          "grade": "Excellent",
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate",
+          "weighted_score": 54.33057252232911,
+          "message": "lead_elbow_angle: Excellent (value=176.09, pro_mean=166.89, pro_std=12.33, z=0.75, reliability=medium, strength=normal)"
+        },
+        "shoulder_tilt": {
+          "value": -152.5063732269576,
+          "pro_mean": 167.0471326944699,
+          "pro_std": 25.2357638039796,
+          "z_score": 1.6027449928895847,
+          "grade": "Good",
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate",
+          "weighted_score": 18.171177574659357,
+          "message": "shoulder_tilt: Good (value=-152.51, pro_mean=167.05, pro_std=25.24, z=1.60, reliability=low, strength=reference)"
+        },
+        "hip_tilt": {
+          "value": -168.36777208109356,
+          "pro_mean": -179.95095938807214,
+          "pro_std": 24.893956193730094,
+          "z_score": 0.4653011846263298,
+          "grade": "Excellent",
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate",
+          "weighted_score": 30.114337561423536,
+          "message": "hip_tilt: Excellent (value=-168.37, pro_mean=-179.95, pro_std=24.89, z=0.47, reliability=low, strength=reference)"
+        },
+        "spine_tilt": {
+          "value": 9.398080396751116,
+          "pro_mean": 6.855841335750911,
+          "pro_std": 4.893357001751972,
+          "z_score": 0.5195286303635734,
+          "grade": "Excellent",
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate",
+          "weighted_score": 84.4141410890928,
+          "message": "spine_tilt: Excellent (value=9.40, pro_mean=6.86, pro_std=4.89, z=0.52, reliability=high, strength=strong)"
+        }
+      },
+      "combined_score": {
+        "distance": 6.084275366379451,
+        "deviation_percentile": 99.99994061193688,
+        "grade": "Needs Improvement",
+        "shrinkage_alpha": 0.0,
+        "message": "combined: Needs Improvement (mahalanobis=6.08, deviation_percentile=100.0 [higher=more unusual], features=['trail_elbow_angle', 'lead_elbow_angle', 'shoulder_tilt', 'hip_tilt', 'spine_tilt'])"
+      },
+      "pose_candidates": {
+        "mediapipe": {
+          "pose_detected": true,
+          "features": {
+            "trail_elbow_angle": 157.03264988098653,
+            "lead_elbow_angle": 176.0905013367343,
+            "shoulder_tilt": -152.5063732269576,
+            "hip_tilt": -168.36777208109356,
+            "spine_tilt": 9.398080396751116
+          },
+          "landmarks": {
+            "NOSE": [
+              320.26644945144653,
+              151.49891138076782,
+              0.999391496181488
+            ],
+            "LEFT_SHOULDER": [
+              360.09002923965454,
+              180.0268006324768,
+              0.9997877478599548
+            ],
+            "RIGHT_SHOULDER": [
+              249.79611039161682,
+              237.42658853530884,
+              0.9997341632843018
+            ],
+            "LEFT_ELBOW": [
+              399.31089878082275,
+              276.07234954833984,
+              0.971494734287262
+            ],
+            "RIGHT_ELBOW": [
+              337.83642053604126,
+              332.0741057395935,
+              0.7851681113243103
+            ],
+            "LEFT_WRIST": [
+              446.21007442474365,
+              371.7104387283325,
+              0.9602704644203186
+            ],
+            "RIGHT_WRIST": [
+              451.55482292175293,
+              382.95219898223877,
+              0.8554575443267822
+            ],
+            "LEFT_HIP": [
+              369.7917938232422,
+              391.4420557022095,
+              0.9992331266403198
+            ],
+            "RIGHT_HIP": [
+              302.85898447036743,
+              405.220627784729,
+              0.9992353916168213
+            ],
+            "LEFT_KNEE": [
+              378.9203882217407,
+              530.2224683761597,
+              0.9913268089294434
+            ],
+            "RIGHT_KNEE": [
+              289.21099305152893,
+              546.3972616195679,
+              0.9876010417938232
+            ],
+            "LEFT_ANKLE": [
+              363.4042739868164,
+              634.8184061050415,
+              0.9889907240867615
+            ],
+            "RIGHT_ANKLE": [
+              260.30840277671814,
+              636.8944787979126,
+              0.98533034324646
+            ]
+          },
+          "computed_feature_count": 5,
+          "qc": {
+            "trail": {
+              "low_vis": false,
+              "bone": false,
+              "frame": false,
+              "inconsistent": false
+            },
+            "lead": {
+              "low_vis": false,
+              "bone": false,
+              "frame": false,
+              "inconsistent": false
+            },
+            "trail_elbow_source": "direct",
+            "lead_elbow_source": "direct"
+          }
+        },
+        "yolopose": null
+      },
+      "event_frame_path": "outputs\\baseline_snapshot_tracked\\test2\\frames\\1_toe_up.jpg",
+      "skeleton_comparison_path": "outputs\\baseline_snapshot_tracked\\test2\\skeletons\\1_toe_up.jpg",
+      "reference_skeleton_available": true,
+      "reference_skeleton_source": 387,
+      "skeleton_comparison_complete": true
+    },
+    "Mid-backswing": {
+      "frame_index": 172,
+      "confidence": 0.03130371496081352,
+      "pose_detected": true,
+      "selected_pose_backend": "mediapipe",
+      "selected_landmarks": {
+        "NOSE": [
+          260.0741922855377,
+          190.04414319992065,
+          0.9988082051277161
+        ],
+        "LEFT_SHOULDER": [
+          326.0960340499878,
+          235.61920881271362,
+          0.9996436238288879
+        ],
+        "RIGHT_SHOULDER": [
+          233.19026827812195,
+          216.96513175964355,
+          0.9995449185371399
+        ],
+        "LEFT_ELBOW": [
+          224.66880083084106,
+          295.8665156364441,
+          0.9851052761077881
+        ],
+        "RIGHT_ELBOW": [
+          195.38031220436096,
+          281.66314601898193,
+          0.6173938512802124
+        ],
+        "LEFT_WRIST": [
+          119.89190876483917,
+          288.97332429885864,
+          0.9750465750694275
+        ],
+        "RIGHT_WRIST": [
+          140.72536826133728,
+          276.1344909667969,
+          0.7516759634017944
+        ],
+        "LEFT_HIP": [
+          326.14052295684814,
+          413.1745147705078,
+          0.9988145232200623
+        ],
+        "RIGHT_HIP": [
+          258.4114372730255,
+          411.102819442749,
+          0.9987015128135681
+        ],
+        "LEFT_KNEE": [
+          341.63070917129517,
+          542.4117994308472,
+          0.9910757541656494
+        ],
+        "RIGHT_KNEE": [
+          251.92662477493286,
+          536.0797262191772,
+          0.9866772890090942
+        ],
+        "LEFT_ANKLE": [
+          362.10447549819946,
+          639.5484066009521,
+          0.9909442663192749
+        ],
+        "RIGHT_ANKLE": [
+          260.7225000858307,
+          633.2837963104248,
+          0.9859701991081238
+        ]
+      },
+      "features": {
+        "trail_elbow_angle": 114.52616078277113,
+        "lead_elbow_angle": 145.5258632147447,
+        "shoulder_tilt": 168.6468309919805,
+        "hip_tilt": 178.2479846146982,
+        "spine_tilt": 3.8886720027755572
+      },
+      "feedback": {
+        "trail_elbow_angle": {
+          "value": 114.52616078277113,
+          "pro_mean": 140.93019780910615,
+          "pro_std": 24.80228886399788,
+          "z_score": -1.064580659112562,
+          "grade": "Good",
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate",
+          "weighted_score": 23.821903079318098,
+          "message": "trail_elbow_angle: Good (value=114.53, pro_mean=140.93, pro_std=24.80, z=-1.06, reliability=low, strength=reference)"
+        },
+        "lead_elbow_angle": {
+          "value": 145.5258632147447,
+          "pro_mean": 143.6970479929508,
+          "pro_std": 20.337643915662444,
+          "z_score": 0.08992266898652446,
+          "grade": "Excellent",
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate",
+          "weighted_score": 34.05581197564149,
+          "message": "lead_elbow_angle: Excellent (value=145.53, pro_mean=143.70, pro_std=20.34, z=0.09, reliability=low, strength=reference)"
+        },
+        "shoulder_tilt": {
+          "value": 168.6468309919805,
+          "pro_mean": 161.58160663154834,
+          "pro_std": 28.838233129384303,
+          "z_score": 0.24499504975681555,
+          "grade": "Excellent",
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate",
+          "weighted_score": 32.427551977553435,
+          "message": "shoulder_tilt: Excellent (value=168.65, pro_mean=161.58, pro_std=28.84, z=0.24, reliability=low, strength=reference)"
+        },
+        "hip_tilt": {
+          "value": 178.2479846146982,
+          "pro_mean": 179.3620429978936,
+          "pro_std": 18.32781314672547,
+          "z_score": -0.060785123368330266,
+          "grade": "Excellent",
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate",
+          "weighted_score": 68.72351240926507,
+          "message": "hip_tilt: Excellent (value=178.25, pro_mean=179.36, pro_std=18.33, z=-0.06, reliability=medium, strength=normal)"
+        },
+        "spine_tilt": {
+          "value": 3.8886720027755572,
+          "pro_mean": 6.945178267554201,
+          "pro_std": 5.337032218996148,
+          "z_score": -0.5726977352506123,
+          "grade": "Excellent",
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate",
+          "weighted_score": 82.81906794248164,
+          "message": "spine_tilt: Excellent (value=3.89, pro_mean=6.95, pro_std=5.34, z=-0.57, reliability=high, strength=strong)"
+        }
+      },
+      "combined_score": {
+        "distance": 1.9038699067575706,
+        "deviation_percentile": 39.539453548524115,
+        "grade": "Excellent",
+        "shrinkage_alpha": 0.1,
+        "message": "combined: Excellent (mahalanobis=1.90, deviation_percentile=39.5 [higher=more unusual], features=['trail_elbow_angle', 'lead_elbow_angle', 'shoulder_tilt', 'hip_tilt', 'spine_tilt'])"
+      },
+      "pose_candidates": {
+        "mediapipe": {
+          "pose_detected": true,
+          "features": {
+            "trail_elbow_angle": 114.52616078277113,
+            "lead_elbow_angle": 145.5258632147447,
+            "shoulder_tilt": 168.6468309919805,
+            "hip_tilt": 178.2479846146982,
+            "spine_tilt": 3.8886720027755572
+          },
+          "landmarks": {
+            "NOSE": [
+              260.0741922855377,
+              190.04414319992065,
+              0.9988082051277161
+            ],
+            "LEFT_SHOULDER": [
+              326.0960340499878,
+              235.61920881271362,
+              0.9996436238288879
+            ],
+            "RIGHT_SHOULDER": [
+              233.19026827812195,
+              216.96513175964355,
+              0.9995449185371399
+            ],
+            "LEFT_ELBOW": [
+              224.66880083084106,
+              295.8665156364441,
+              0.9851052761077881
+            ],
+            "RIGHT_ELBOW": [
+              195.38031220436096,
+              281.66314601898193,
+              0.6173938512802124
+            ],
+            "LEFT_WRIST": [
+              119.89190876483917,
+              288.97332429885864,
+              0.9750465750694275
+            ],
+            "RIGHT_WRIST": [
+              140.72536826133728,
+              276.1344909667969,
+              0.7516759634017944
+            ],
+            "LEFT_HIP": [
+              326.14052295684814,
+              413.1745147705078,
+              0.9988145232200623
+            ],
+            "RIGHT_HIP": [
+              258.4114372730255,
+              411.102819442749,
+              0.9987015128135681
+            ],
+            "LEFT_KNEE": [
+              341.63070917129517,
+              542.4117994308472,
+              0.9910757541656494
+            ],
+            "RIGHT_KNEE": [
+              251.92662477493286,
+              536.0797262191772,
+              0.9866772890090942
+            ],
+            "LEFT_ANKLE": [
+              362.10447549819946,
+              639.5484066009521,
+              0.9909442663192749
+            ],
+            "RIGHT_ANKLE": [
+              260.7225000858307,
+              633.2837963104248,
+              0.9859701991081238
+            ]
+          },
+          "computed_feature_count": 5,
+          "qc": {
+            "trail": {
+              "low_vis": false,
+              "bone": false,
+              "frame": false,
+              "inconsistent": false
+            },
+            "lead": {
+              "low_vis": false,
+              "bone": false,
+              "frame": false,
+              "inconsistent": false
+            },
+            "trail_elbow_source": "direct",
+            "lead_elbow_source": "direct"
+          }
+        },
+        "yolopose": null
+      },
+      "event_frame_path": "outputs\\baseline_snapshot_tracked\\test2\\frames\\2_mid_backswing.jpg",
+      "skeleton_comparison_path": "outputs\\baseline_snapshot_tracked\\test2\\skeletons\\2_mid_backswing.jpg",
+      "reference_skeleton_available": true,
+      "reference_skeleton_source": 72,
+      "skeleton_comparison_complete": true
+    },
+    "Top": {
+      "frame_index": 179,
+      "confidence": 0.008226925507187843,
+      "pose_detected": true,
+      "selected_pose_backend": "mediapipe",
+      "selected_landmarks": {
+        "NOSE": [
+          262.10222840309143,
+          183.74013662338257,
+          0.9985204935073853
+        ],
+        "LEFT_SHOULDER": [
+          336.4825129508972,
+          221.9675588607788,
+          0.9995186924934387
+        ],
+        "RIGHT_SHOULDER": [
+          233.60713720321655,
+          217.8352403640747,
+          0.9995006322860718
+        ],
+        "LEFT_ELBOW": [
+          251.92678570747375,
+          314.00479316711426,
+          0.9812759757041931
+        ],
+        "RIGHT_ELBOW": [
+          219.03839707374573,
+          317.60348081588745,
+          0.5077762007713318
+        ],
+        "LEFT_WRIST": [
+          154.90132570266724,
+          373.23243141174316,
+          0.970914900302887
+        ],
+        "RIGHT_WRIST": [
+          153.2109797000885,
+          373.77625465393066,
+          0.7081390023231506
+        ],
+        "LEFT_HIP": [
+          347.13631868362427,
+          411.5503406524658,
+          0.9984135627746582
+        ],
+        "RIGHT_HIP": [
+          273.69934916496277,
+          409.41744804382324,
+          0.9985074996948242
+        ],
+        "LEFT_KNEE": [
+          359.98857021331787,
+          544.8628664016724,
+          0.9906946420669556
+        ],
+        "RIGHT_KNEE": [
+          254.38604950904846,
+          536.2199306488037,
+          0.9879409074783325
+        ],
+        "LEFT_ANKLE": [
+          361.9238018989563,
+          638.323130607605,
+          0.9909803867340088
+        ],
+        "RIGHT_ANKLE": [
+          260.1781368255615,
+          633.1990814208984,
+          0.9874516725540161
+        ]
+      },
+      "features": {
+        "trail_elbow_angle": 138.7831981085291,
+        "lead_elbow_angle": 163.9753773709599,
+        "shoulder_tilt": 177.69976836208613,
+        "hip_tilt": 178.33637742980648,
+        "spine_tilt": 7.583421312267557
+      },
+      "feedback": {
+        "trail_elbow_angle": {
+          "value": 138.7831981085291,
+          "pro_mean": 135.86289529156582,
+          "pro_std": 23.867334295326504,
+          "z_score": 0.12235563388975115,
+          "grade": "Excellent",
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate",
+          "weighted_score": 33.715265844157614,
+          "message": "trail_elbow_angle: Excellent (value=138.78, pro_mean=135.86, pro_std=23.87, z=0.12, reliability=low, strength=reference)"
+        },
+        "lead_elbow_angle": {
+          "value": 163.9753773709599,
+          "pro_mean": 110.69153946912314,
+          "pro_std": 31.13097533018372,
+          "z_score": 1.7116019442594927,
+          "grade": "Good",
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate",
+          "weighted_score": 17.028179585275325,
+          "message": "lead_elbow_angle: Good (value=163.98, pro_mean=110.69, pro_std=31.13, z=1.71, reliability=low, strength=reference)"
+        },
+        "shoulder_tilt": {
+          "value": 177.69976836208613,
+          "pro_mean": 175.27774241008595,
+          "pro_std": 34.365788514435806,
+          "z_score": 0.07047782276209898,
+          "grade": "Excellent",
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate",
+          "weighted_score": 34.25998286099796,
+          "message": "shoulder_tilt: Excellent (value=177.70, pro_mean=175.28, pro_std=34.37, z=0.07, reliability=low, strength=reference)"
+        },
+        "hip_tilt": {
+          "value": 178.33637742980648,
+          "pro_mean": -179.07226277057188,
+          "pro_std": 26.7221531854899,
+          "z_score": -0.09697421392781774,
+          "grade": "Excellent",
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate",
+          "weighted_score": 33.981770753757914,
+          "message": "hip_tilt: Excellent (value=178.34, pro_mean=-179.07, pro_std=26.72, z=-0.10, reliability=low, strength=reference)"
+        },
+        "spine_tilt": {
+          "value": 7.583421312267557,
+          "pro_mean": 7.1247768737583135,
+          "pro_std": 5.387154620577959,
+          "z_score": 0.08513667618844735,
+          "grade": "Excellent",
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate",
+          "weighted_score": 97.44589971434658,
+          "message": "spine_tilt: Excellent (value=7.58, pro_mean=7.12, pro_std=5.39, z=0.09, reliability=high, strength=strong)"
+        }
+      },
+      "combined_score": {
+        "distance": 1.5903051696081902,
+        "deviation_percentile": 22.788923140104913,
+        "grade": "Excellent",
+        "shrinkage_alpha": 0.1,
+        "message": "combined: Excellent (mahalanobis=1.59, deviation_percentile=22.8 [higher=more unusual], features=['trail_elbow_angle', 'lead_elbow_angle', 'shoulder_tilt', 'hip_tilt', 'spine_tilt'])"
+      },
+      "pose_candidates": {
+        "mediapipe": {
+          "pose_detected": true,
+          "features": {
+            "trail_elbow_angle": 138.7831981085291,
+            "lead_elbow_angle": 163.9753773709599,
+            "shoulder_tilt": 177.69976836208613,
+            "hip_tilt": 178.33637742980648,
+            "spine_tilt": 7.583421312267557
+          },
+          "landmarks": {
+            "NOSE": [
+              262.10222840309143,
+              183.74013662338257,
+              0.9985204935073853
+            ],
+            "LEFT_SHOULDER": [
+              336.4825129508972,
+              221.9675588607788,
+              0.9995186924934387
+            ],
+            "RIGHT_SHOULDER": [
+              233.60713720321655,
+              217.8352403640747,
+              0.9995006322860718
+            ],
+            "LEFT_ELBOW": [
+              251.92678570747375,
+              314.00479316711426,
+              0.9812759757041931
+            ],
+            "RIGHT_ELBOW": [
+              219.03839707374573,
+              317.60348081588745,
+              0.5077762007713318
+            ],
+            "LEFT_WRIST": [
+              154.90132570266724,
+              373.23243141174316,
+              0.970914900302887
+            ],
+            "RIGHT_WRIST": [
+              153.2109797000885,
+              373.77625465393066,
+              0.7081390023231506
+            ],
+            "LEFT_HIP": [
+              347.13631868362427,
+              411.5503406524658,
+              0.9984135627746582
+            ],
+            "RIGHT_HIP": [
+              273.69934916496277,
+              409.41744804382324,
+              0.9985074996948242
+            ],
+            "LEFT_KNEE": [
+              359.98857021331787,
+              544.8628664016724,
+              0.9906946420669556
+            ],
+            "RIGHT_KNEE": [
+              254.38604950904846,
+              536.2199306488037,
+              0.9879409074783325
+            ],
+            "LEFT_ANKLE": [
+              361.9238018989563,
+              638.323130607605,
+              0.9909803867340088
+            ],
+            "RIGHT_ANKLE": [
+              260.1781368255615,
+              633.1990814208984,
+              0.9874516725540161
+            ]
+          },
+          "computed_feature_count": 5,
+          "qc": {
+            "trail": {
+              "low_vis": false,
+              "bone": false,
+              "frame": false,
+              "inconsistent": false
+            },
+            "lead": {
+              "low_vis": false,
+              "bone": false,
+              "frame": false,
+              "inconsistent": false
+            },
+            "trail_elbow_source": "direct",
+            "lead_elbow_source": "direct"
+          }
+        },
+        "yolopose": null
+      },
+      "event_frame_path": "outputs\\baseline_snapshot_tracked\\test2\\frames\\3_top.jpg",
+      "skeleton_comparison_path": "outputs\\baseline_snapshot_tracked\\test2\\skeletons\\3_top.jpg",
+      "reference_skeleton_available": true,
+      "reference_skeleton_source": 976,
+      "skeleton_comparison_complete": true
+    },
+    "Mid-downswing": {
+      "frame_index": 174,
+      "confidence": 0.02740967646241188,
+      "pose_detected": true,
+      "selected_pose_backend": "mediapipe",
+      "selected_landmarks": {
+        "NOSE": [
+          259.175169467926,
+          189.5074439048767,
+          0.9987277388572693
+        ],
+        "LEFT_SHOULDER": [
+          325.93356370925903,
+          234.2281937599182,
+          0.9995583891868591
+        ],
+        "RIGHT_SHOULDER": [
+          234.63465571403503,
+          217.9410696029663,
+          0.9994569420814514
+        ],
+        "LEFT_ELBOW": [
+          225.34250020980835,
+          294.6626543998718,
+          0.9848995804786682
+        ],
+        "RIGHT_ELBOW": [
+          195.73708176612854,
+          284.1499400138855,
+          0.5779867172241211
+        ],
+        "LEFT_WRIST": [
+          119.71937119960785,
+          290.9485459327698,
+          0.9765549302101135
+        ],
+        "RIGHT_WRIST": [
+          139.73158299922943,
+          281.53053760528564,
+          0.757035493850708
+        ],
+        "LEFT_HIP": [
+          326.8278121948242,
+          414.48875427246094,
+          0.9985969066619873
+        ],
+        "RIGHT_HIP": [
+          258.59625935554504,
+          412.4461555480957,
+          0.9985049366950989
+        ],
+        "LEFT_KNEE": [
+          341.7653203010559,
+          542.3076009750366,
+          0.9910712838172913
+        ],
+        "RIGHT_KNEE": [
+          251.76351070404053,
+          536.5304660797119,
+          0.9867101907730103
+        ],
+        "LEFT_ANKLE": [
+          362.0735764503479,
+          639.3043899536133,
+          0.9911746978759766
+        ],
+        "RIGHT_ANKLE": [
+          260.29711961746216,
+          633.2282638549805,
+          0.9863471388816833
+        ]
+      },
+      "features": {
+        "trail_elbow_angle": 117.75634932865549,
+        "lead_elbow_angle": 146.98891773528783,
+        "shoulder_tilt": 169.88521278334127,
+        "hip_tilt": 178.2852897322464,
+        "spine_tilt": 3.7945119869867647
+      },
+      "feedback": {
+        "trail_elbow_angle": {
+          "value": 117.75634932865549,
+          "pro_mean": 105.54249078996646,
+          "pro_std": 31.137207862757567,
+          "z_score": 0.3922592736164283,
+          "grade": "Excellent",
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate",
+          "weighted_score": 30.881277627027504,
+          "message": "trail_elbow_angle: Excellent (value=117.76, pro_mean=105.54, pro_std=31.14, z=0.39, reliability=low, strength=reference)"
+        },
+        "lead_elbow_angle": {
+          "value": 146.98891773528783,
+          "pro_mean": 140.61615238711914,
+          "pro_std": 18.803170116167795,
+          "z_score": 0.3389197304920993,
+          "grade": "Excellent",
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate",
+          "weighted_score": 62.88268565966591,
+          "message": "lead_elbow_angle: Excellent (value=146.99, pro_mean=140.62, pro_std=18.80, z=0.34, reliability=medium, strength=normal)"
+        },
+        "shoulder_tilt": {
+          "value": 169.88521278334127,
+          "pro_mean": 176.8899801458015,
+          "pro_std": 13.752218481088732,
+          "z_score": -0.5093554448755149,
+          "grade": "Excellent",
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate",
+          "weighted_score": 59.303535657614184,
+          "message": "shoulder_tilt: Excellent (value=169.89, pro_mean=176.89, pro_std=13.75, z=-0.51, reliability=medium, strength=normal)"
+        },
+        "hip_tilt": {
+          "value": 178.2852897322464,
+          "pro_mean": -178.38521335931682,
+          "pro_std": 9.821905670648412,
+          "z_score": -0.33898685449470334,
+          "grade": "Excellent",
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate",
+          "weighted_score": 89.8303943651589,
+          "message": "hip_tilt: Excellent (value=178.29, pro_mean=-178.39, pro_std=9.82, z=-0.34, reliability=high, strength=strong)"
+        },
+        "spine_tilt": {
+          "value": 3.7945119869867647,
+          "pro_mean": 8.114561928889545,
+          "pro_std": 5.009289239690949,
+          "z_score": -0.862407765890817,
+          "grade": "Excellent",
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate",
+          "weighted_score": 74.12776702327548,
+          "message": "spine_tilt: Excellent (value=3.79, pro_mean=8.11, pro_std=5.01, z=-0.86, reliability=high, strength=strong)"
+        }
+      },
+      "combined_score": {
+        "distance": 1.252881503464006,
+        "deviation_percentile": 9.511243070709494,
+        "grade": "Excellent",
+        "shrinkage_alpha": 0.15000000000000002,
+        "message": "combined: Excellent (mahalanobis=1.25, deviation_percentile=9.5 [higher=more unusual], features=['trail_elbow_angle', 'lead_elbow_angle', 'shoulder_tilt', 'hip_tilt', 'spine_tilt'])"
+      },
+      "pose_candidates": {
+        "mediapipe": {
+          "pose_detected": true,
+          "features": {
+            "trail_elbow_angle": 117.75634932865549,
+            "lead_elbow_angle": 146.98891773528783,
+            "shoulder_tilt": 169.88521278334127,
+            "hip_tilt": 178.2852897322464,
+            "spine_tilt": 3.7945119869867647
+          },
+          "landmarks": {
+            "NOSE": [
+              259.175169467926,
+              189.5074439048767,
+              0.9987277388572693
+            ],
+            "LEFT_SHOULDER": [
+              325.93356370925903,
+              234.2281937599182,
+              0.9995583891868591
+            ],
+            "RIGHT_SHOULDER": [
+              234.63465571403503,
+              217.9410696029663,
+              0.9994569420814514
+            ],
+            "LEFT_ELBOW": [
+              225.34250020980835,
+              294.6626543998718,
+              0.9848995804786682
+            ],
+            "RIGHT_ELBOW": [
+              195.73708176612854,
+              284.1499400138855,
+              0.5779867172241211
+            ],
+            "LEFT_WRIST": [
+              119.71937119960785,
+              290.9485459327698,
+              0.9765549302101135
+            ],
+            "RIGHT_WRIST": [
+              139.73158299922943,
+              281.53053760528564,
+              0.757035493850708
+            ],
+            "LEFT_HIP": [
+              326.8278121948242,
+              414.48875427246094,
+              0.9985969066619873
+            ],
+            "RIGHT_HIP": [
+              258.59625935554504,
+              412.4461555480957,
+              0.9985049366950989
+            ],
+            "LEFT_KNEE": [
+              341.7653203010559,
+              542.3076009750366,
+              0.9910712838172913
+            ],
+            "RIGHT_KNEE": [
+              251.76351070404053,
+              536.5304660797119,
+              0.9867101907730103
+            ],
+            "LEFT_ANKLE": [
+              362.0735764503479,
+              639.3043899536133,
+              0.9911746978759766
+            ],
+            "RIGHT_ANKLE": [
+              260.29711961746216,
+              633.2282638549805,
+              0.9863471388816833
+            ]
+          },
+          "computed_feature_count": 5,
+          "qc": {
+            "trail": {
+              "low_vis": false,
+              "bone": false,
+              "frame": false,
+              "inconsistent": false
+            },
+            "lead": {
+              "low_vis": false,
+              "bone": false,
+              "frame": false,
+              "inconsistent": false
+            },
+            "trail_elbow_source": "direct",
+            "lead_elbow_source": "direct"
+          }
+        },
+        "yolopose": null
+      },
+      "event_frame_path": "outputs\\baseline_snapshot_tracked\\test2\\frames\\4_mid_downswing.jpg",
+      "skeleton_comparison_path": "outputs\\baseline_snapshot_tracked\\test2\\skeletons\\4_mid_downswing.jpg",
+      "reference_skeleton_available": true,
+      "reference_skeleton_source": 704,
+      "skeleton_comparison_complete": true
+    },
+    "Impact": {
+      "frame_index": 148,
+      "confidence": 0.32561084628105164,
+      "pose_detected": true,
+      "selected_pose_backend": "mediapipe",
+      "selected_landmarks": {
+        "NOSE": [
+          277.0476043224335,
+          237.5388765335083,
+          0.999949038028717
+        ],
+        "LEFT_SHOULDER": [
+          366.0946011543274,
+          234.6621322631836,
+          0.9999676942825317
+        ],
+        "RIGHT_SHOULDER": [
+          221.00200653076172,
+          264.51147079467773,
+          0.9999606013298035
+        ],
+        "LEFT_ELBOW": [
+          342.5058603286743,
+          369.63552474975586,
+          0.9900211095809937
+        ],
+        "RIGHT_ELBOW": [
+          259.60443019866943,
+          376.39512062072754,
+          0.8251400589942932
+        ],
+        "LEFT_WRIST": [
+          320.1922416687012,
+          460.83166122436523,
+          0.9802661538124084
+        ],
+        "RIGHT_WRIST": [
+          281.2448501586914,
+          467.0375633239746,
+          0.8855217099189758
+        ],
+        "LEFT_HIP": [
+          352.2294759750366,
+          385.82902908325195,
+          0.9995946884155273
+        ],
+        "RIGHT_HIP": [
+          277.46593952178955,
+          392.0356607437134,
+          0.9996276497840881
+        ],
+        "LEFT_KNEE": [
+          367.0581579208374,
+          535.4680109024048,
+          0.9930554032325745
+        ],
+        "RIGHT_KNEE": [
+          264.26830887794495,
+          530.9276533126831,
+          0.9901379942893982
+        ],
+        "LEFT_ANKLE": [
+          362.09603548049927,
+          636.1802387237549,
+          0.9906352162361145
+        ],
+        "RIGHT_ANKLE": [
+          262.9416882991791,
+          634.0260171890259,
+          0.9865525364875793
+        ]
+      },
+      "features": {
+        "trail_elbow_angle": 174.3921100362321,
+        "lead_elbow_angle": 176.16437472383984,
+        "shoulder_tilt": -168.37495299444086,
+        "hip_tilt": -175.25436812455715,
+        "spine_tilt": 8.690574006524532
+      },
+      "feedback": {
+        "trail_elbow_angle": {
+          "value": 174.3921100362321,
+          "pro_mean": 157.7327573247084,
+          "pro_std": 13.130108511365275,
+          "z_score": 1.2687901777128174,
+          "grade": "Good",
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate",
+          "weighted_score": 43.355406268030826,
+          "message": "trail_elbow_angle: Good (value=174.39, pro_mean=157.73, pro_std=13.13, z=1.27, reliability=medium, strength=normal)"
+        },
+        "lead_elbow_angle": {
+          "value": 176.16437472383984,
+          "pro_mean": 168.5784035121124,
+          "pro_std": 17.94075329783001,
+          "z_score": 0.42283459817960856,
+          "grade": "Excellent",
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate",
+          "weighted_score": 61.12047343822822,
+          "message": "lead_elbow_angle: Excellent (value=176.16, pro_mean=168.58, pro_std=17.94, z=0.42, reliability=medium, strength=normal)"
+        },
+        "shoulder_tilt": {
+          "value": -168.37495299444086,
+          "pro_mean": -150.5554613734622,
+          "pro_std": 25.165418752600054,
+          "z_score": -0.7080943812682461,
+          "grade": "Excellent",
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate",
+          "weighted_score": 27.565008996683417,
+          "message": "shoulder_tilt: Excellent (value=-168.37, pro_mean=-150.56, pro_std=25.17, z=-0.71, reliability=low, strength=reference)"
+        },
+        "hip_tilt": {
+          "value": -175.25436812455715,
+          "pro_mean": -173.0454129276804,
+          "pro_std": 30.26209896269885,
+          "z_score": -0.0729941171496241,
+          "grade": "Excellent",
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate",
+          "weighted_score": 34.23356176992895,
+          "message": "hip_tilt: Excellent (value=-175.25, pro_mean=-173.05, pro_std=30.26, z=-0.07, reliability=low, strength=reference)"
+        },
+        "spine_tilt": {
+          "value": 8.690574006524532,
+          "pro_mean": 16.507210981499988,
+          "pro_std": 7.216745220611125,
+          "z_score": -1.083124973381495,
+          "grade": "Good",
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate",
+          "weighted_score": 67.50625079855516,
+          "message": "spine_tilt: Good (value=8.69, pro_mean=16.51, pro_std=7.22, z=-1.08, reliability=high, strength=strong)"
+        }
+      },
+      "combined_score": {
+        "distance": 3.1983841400771698,
+        "deviation_percentile": 93.10166346607215,
+        "grade": "Good",
+        "shrinkage_alpha": 0.0,
+        "message": "combined: Good (mahalanobis=3.20, deviation_percentile=93.1 [higher=more unusual], features=['trail_elbow_angle', 'lead_elbow_angle', 'shoulder_tilt', 'hip_tilt', 'spine_tilt'])"
+      },
+      "pose_candidates": {
+        "mediapipe": {
+          "pose_detected": true,
+          "features": {
+            "trail_elbow_angle": 174.3921100362321,
+            "lead_elbow_angle": 176.16437472383984,
+            "shoulder_tilt": -168.37495299444086,
+            "hip_tilt": -175.25436812455715,
+            "spine_tilt": 8.690574006524532
+          },
+          "landmarks": {
+            "NOSE": [
+              277.0476043224335,
+              237.5388765335083,
+              0.999949038028717
+            ],
+            "LEFT_SHOULDER": [
+              366.0946011543274,
+              234.6621322631836,
+              0.9999676942825317
+            ],
+            "RIGHT_SHOULDER": [
+              221.00200653076172,
+              264.51147079467773,
+              0.9999606013298035
+            ],
+            "LEFT_ELBOW": [
+              342.5058603286743,
+              369.63552474975586,
+              0.9900211095809937
+            ],
+            "RIGHT_ELBOW": [
+              259.60443019866943,
+              376.39512062072754,
+              0.8251400589942932
+            ],
+            "LEFT_WRIST": [
+              320.1922416687012,
+              460.83166122436523,
+              0.9802661538124084
+            ],
+            "RIGHT_WRIST": [
+              281.2448501586914,
+              467.0375633239746,
+              0.8855217099189758
+            ],
+            "LEFT_HIP": [
+              352.2294759750366,
+              385.82902908325195,
+              0.9995946884155273
+            ],
+            "RIGHT_HIP": [
+              277.46593952178955,
+              392.0356607437134,
+              0.9996276497840881
+            ],
+            "LEFT_KNEE": [
+              367.0581579208374,
+              535.4680109024048,
+              0.9930554032325745
+            ],
+            "RIGHT_KNEE": [
+              264.26830887794495,
+              530.9276533126831,
+              0.9901379942893982
+            ],
+            "LEFT_ANKLE": [
+              362.09603548049927,
+              636.1802387237549,
+              0.9906352162361145
+            ],
+            "RIGHT_ANKLE": [
+              262.9416882991791,
+              634.0260171890259,
+              0.9865525364875793
+            ]
+          },
+          "computed_feature_count": 5,
+          "qc": {
+            "trail": {
+              "low_vis": false,
+              "bone": false,
+              "frame": false,
+              "inconsistent": false
+            },
+            "lead": {
+              "low_vis": false,
+              "bone": false,
+              "frame": false,
+              "inconsistent": false
+            },
+            "trail_elbow_source": "direct",
+            "lead_elbow_source": "direct"
+          }
+        },
+        "yolopose": null
+      },
+      "event_frame_path": "outputs\\baseline_snapshot_tracked\\test2\\frames\\5_impact.jpg",
+      "skeleton_comparison_path": "outputs\\baseline_snapshot_tracked\\test2\\skeletons\\5_impact.jpg",
+      "reference_skeleton_available": true,
+      "reference_skeleton_source": 421,
+      "skeleton_comparison_complete": true
+    },
+    "Mid-follow-through": {
+      "frame_index": 190,
+      "confidence": 0.06278075277805328,
+      "pose_detected": true,
+      "selected_pose_backend": "mediapipe",
+      "selected_landmarks": {
+        "NOSE": [
+          323.66448640823364,
+          137.61338353157043,
+          0.9994927644729614
+        ],
+        "LEFT_SHOULDER": [
+          359.89304780960083,
+          181.06406450271606,
+          0.9998102188110352
+        ],
+        "RIGHT_SHOULDER": [
+          260.58926582336426,
+          234.15525913238525,
+          0.9997547268867493
+        ],
+        "LEFT_ELBOW": [
+          400.89333057403564,
+          280.62740564346313,
+          0.950785756111145
+        ],
+        "RIGHT_ELBOW": [
+          364.93985652923584,
+          320.9981060028076,
+          0.8253511190414429
+        ],
+        "LEFT_WRIST": [
+          455.89739084243774,
+          351.1091208457947,
+          0.9413267970085144
+        ],
+        "RIGHT_WRIST": [
+          474.1885542869568,
+          357.3590326309204,
+          0.8809914588928223
+        ],
+        "LEFT_HIP": [
+          371.587872505188,
+          397.6246976852417,
+          0.9993423819541931
+        ],
+        "RIGHT_HIP": [
+          306.0837149620056,
+          411.3845157623291,
+          0.9993276000022888
+        ],
+        "LEFT_KNEE": [
+          379.6687960624695,
+          539.2656755447388,
+          0.9899978637695312
+        ],
+        "RIGHT_KNEE": [
+          296.761679649353,
+          551.5117835998535,
+          0.9870193600654602
+        ],
+        "LEFT_ANKLE": [
+          363.5931372642517,
+          635.7969188690186,
+          0.9881397485733032
+        ],
+        "RIGHT_ANKLE": [
+          259.5154345035553,
+          639.2069721221924,
+          0.985297679901123
+        ]
+      },
+      "features": {
+        "trail_elbow_angle": 158.64087138660435,
+        "lead_elbow_angle": 164.41336994011866,
+        "shoulder_tilt": -151.86951760825633,
+        "hip_tilt": -168.13691602222985,
+        "spine_tilt": 8.26317493908798
+      },
+      "feedback": {
+        "trail_elbow_angle": {
+          "value": 158.64087138660435,
+          "pro_mean": 157.18913247027072,
+          "pro_std": 15.81535096551479,
+          "z_score": 0.09179302561790291,
+          "grade": "Excellent",
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate",
+          "weighted_score": 68.07234646202403,
+          "message": "trail_elbow_angle: Excellent (value=158.64, pro_mean=157.19, pro_std=15.82, z=0.09, reliability=medium, strength=normal)"
+        },
+        "lead_elbow_angle": {
+          "value": 164.41336994011866,
+          "pro_mean": 158.95751899365237,
+          "pro_std": 24.287753732846916,
+          "z_score": 0.22463382190374223,
+          "grade": "Excellent",
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate",
+          "weighted_score": 32.641344870010705,
+          "message": "lead_elbow_angle: Excellent (value=164.41, pro_mean=158.96, pro_std=24.29, z=0.22, reliability=low, strength=reference)"
+        },
+        "shoulder_tilt": {
+          "value": -151.86951760825633,
+          "pro_mean": -138.652190020221,
+          "pro_std": 16.941020930876007,
+          "z_score": -0.7801966387955971,
+          "grade": "Excellent",
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate",
+          "weighted_score": 53.615870585292456,
+          "message": "shoulder_tilt: Excellent (value=-151.87, pro_mean=-138.65, pro_std=16.94, z=-0.78, reliability=medium, strength=normal)"
+        },
+        "hip_tilt": {
+          "value": -168.13691602222985,
+          "pro_mean": -170.63143054971212,
+          "pro_std": 13.242813145956662,
+          "z_score": 0.18836741861331024,
+          "grade": "Excellent",
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate",
+          "weighted_score": 66.04428420912048,
+          "message": "hip_tilt: Excellent (value=-168.14, pro_mean=-170.63, pro_std=13.24, z=0.19, reliability=medium, strength=normal)"
+        },
+        "spine_tilt": {
+          "value": 8.26317493908798,
+          "pro_mean": 17.551016825481803,
+          "pro_std": 7.750075363773296,
+          "z_score": -1.198419557286967,
+          "grade": "Good",
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate",
+          "weighted_score": 64.04741328139099,
+          "message": "spine_tilt: Good (value=8.26, pro_mean=17.55, pro_std=7.75, z=-1.20, reliability=high, strength=strong)"
+        }
+      },
+      "combined_score": {
+        "distance": 2.5518396470447606,
+        "deviation_percentile": 74.04555191497157,
+        "grade": "Good",
+        "shrinkage_alpha": 0.0,
+        "message": "combined: Good (mahalanobis=2.55, deviation_percentile=74.0 [higher=more unusual], features=['trail_elbow_angle', 'lead_elbow_angle', 'shoulder_tilt', 'hip_tilt', 'spine_tilt'])"
+      },
+      "pose_candidates": {
+        "mediapipe": {
+          "pose_detected": true,
+          "features": {
+            "trail_elbow_angle": 158.64087138660435,
+            "lead_elbow_angle": 164.41336994011866,
+            "shoulder_tilt": -151.86951760825633,
+            "hip_tilt": -168.13691602222985,
+            "spine_tilt": 8.26317493908798
+          },
+          "landmarks": {
+            "NOSE": [
+              323.66448640823364,
+              137.61338353157043,
+              0.9994927644729614
+            ],
+            "LEFT_SHOULDER": [
+              359.89304780960083,
+              181.06406450271606,
+              0.9998102188110352
+            ],
+            "RIGHT_SHOULDER": [
+              260.58926582336426,
+              234.15525913238525,
+              0.9997547268867493
+            ],
+            "LEFT_ELBOW": [
+              400.89333057403564,
+              280.62740564346313,
+              0.950785756111145
+            ],
+            "RIGHT_ELBOW": [
+              364.93985652923584,
+              320.9981060028076,
+              0.8253511190414429
+            ],
+            "LEFT_WRIST": [
+              455.89739084243774,
+              351.1091208457947,
+              0.9413267970085144
+            ],
+            "RIGHT_WRIST": [
+              474.1885542869568,
+              357.3590326309204,
+              0.8809914588928223
+            ],
+            "LEFT_HIP": [
+              371.587872505188,
+              397.6246976852417,
+              0.9993423819541931
+            ],
+            "RIGHT_HIP": [
+              306.0837149620056,
+              411.3845157623291,
+              0.9993276000022888
+            ],
+            "LEFT_KNEE": [
+              379.6687960624695,
+              539.2656755447388,
+              0.9899978637695312
+            ],
+            "RIGHT_KNEE": [
+              296.761679649353,
+              551.5117835998535,
+              0.9870193600654602
+            ],
+            "LEFT_ANKLE": [
+              363.5931372642517,
+              635.7969188690186,
+              0.9881397485733032
+            ],
+            "RIGHT_ANKLE": [
+              259.5154345035553,
+              639.2069721221924,
+              0.985297679901123
+            ]
+          },
+          "computed_feature_count": 5,
+          "qc": {
+            "trail": {
+              "low_vis": false,
+              "bone": false,
+              "frame": false,
+              "inconsistent": false
+            },
+            "lead": {
+              "low_vis": false,
+              "bone": false,
+              "frame": false,
+              "inconsistent": false
+            },
+            "trail_elbow_source": "direct",
+            "lead_elbow_source": "direct"
+          }
+        },
+        "yolopose": null
+      },
+      "event_frame_path": "outputs\\baseline_snapshot_tracked\\test2\\frames\\6_mid_follow_through.jpg",
+      "skeleton_comparison_path": "outputs\\baseline_snapshot_tracked\\test2\\skeletons\\6_mid_follow_through.jpg",
+      "reference_skeleton_available": true,
+      "reference_skeleton_source": 1191,
+      "skeleton_comparison_complete": true
+    },
+    "Finish": {
+      "frame_index": 121,
+      "confidence": 0.042383067309856415,
+      "pose_detected": true,
+      "selected_pose_backend": "mediapipe",
+      "selected_landmarks": {
+        "NOSE": [
+          244.79284286499023,
+          217.92789459228516,
+          0.999981164932251
+        ],
+        "LEFT_SHOULDER": [
+          353.7615895271301,
+          253.7770128250122,
+          0.9999780058860779
+        ],
+        "RIGHT_SHOULDER": [
+          235.34839153289795,
+          238.15136432647705,
+          0.9999746680259705
+        ],
+        "LEFT_ELBOW": [
+          305.98411560058594,
+          375.05255699157715,
+          0.9921198487281799
+        ],
+        "RIGHT_ELBOW": [
+          239.3219232559204,
+          341.0571885108948,
+          0.9342479109764099
+        ],
+        "LEFT_WRIST": [
+          244.94553208351135,
+          469.1387414932251,
+          0.9849236607551575
+        ],
+        "RIGHT_WRIST": [
+          218.1566834449768,
+          452.71937370300293,
+          0.942867636680603
+        ],
+        "LEFT_HIP": [
+          349.6418237686157,
+          395.15440464019775,
+          0.999830424785614
+        ],
+        "RIGHT_HIP": [
+          278.28558683395386,
+          389.69218254089355,
+          0.9998540878295898
+        ],
+        "LEFT_KNEE": [
+          360.74849367141724,
+          539.8922824859619,
+          0.9893323183059692
+        ],
+        "RIGHT_KNEE": [
+          257.55735039711,
+          523.8814687728882,
+          0.9893926382064819
+        ],
+        "LEFT_ANKLE": [
+          365.1492476463318,
+          645.1501893997192,
+          0.9846768379211426
+        ],
+        "RIGHT_ANKLE": [
+          263.9141321182251,
+          638.8475131988525,
+          0.9834859371185303
+        ]
+      },
+      "features": {
+        "trail_elbow_angle": 167.05580229219538,
+        "lead_elbow_angle": 168.5287939845436,
+        "shoulder_tilt": 172.4827569867487,
+        "hip_tilt": 175.62262334560978,
+        "spine_tilt": 7.5488342978572724
+      },
+      "feedback": {
+        "trail_elbow_angle": {
+          "value": 167.05580229219538,
+          "pro_mean": 90.7182242458926,
+          "pro_std": 40.981045537934804,
+          "z_score": 1.862753305687128,
+          "grade": "Good",
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate",
+          "weighted_score": 15.441090290285157,
+          "message": "trail_elbow_angle: Good (value=167.06, pro_mean=90.72, pro_std=40.98, z=1.86, reliability=low, strength=reference)"
+        },
+        "lead_elbow_angle": {
+          "value": 168.5287939845436,
+          "pro_mean": 85.65260931591035,
+          "pro_std": 48.475876527911524,
+          "z_score": 1.7096376714491104,
+          "grade": "Good",
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate",
+          "weighted_score": 17.04880444978434,
+          "message": "lead_elbow_angle: Good (value=168.53, pro_mean=85.65, pro_std=48.48, z=1.71, reliability=low, strength=reference)"
+        },
+        "shoulder_tilt": {
+          "value": 172.4827569867487,
+          "pro_mean": 166.9947690320819,
+          "pro_std": 83.8202234439759,
+          "z_score": 0.06547331573668363,
+          "grade": "Excellent",
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate",
+          "weighted_score": 34.312530184764825,
+          "message": "shoulder_tilt: Excellent (value=172.48, pro_mean=166.99, pro_std=83.82, z=0.07, reliability=low, strength=reference)"
+        },
+        "hip_tilt": {
+          "value": 175.62262334560978,
+          "pro_mean": 178.5983554736199,
+          "pro_std": 75.92932648627672,
+          "z_score": -0.03919081421784966,
+          "grade": "Excellent",
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate",
+          "weighted_score": 34.588496450712576,
+          "message": "hip_tilt: Excellent (value=175.62, pro_mean=178.60, pro_std=75.93, z=-0.04, reliability=low, strength=reference)"
+        },
+        "spine_tilt": {
+          "value": 7.5488342978572724,
+          "pro_mean": 4.010505669593896,
+          "pro_std": 5.177919247772128,
+          "z_score": 0.6833495191694601,
+          "grade": "Excellent",
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate",
+          "weighted_score": 79.4995144249162,
+          "message": "spine_tilt: Excellent (value=7.55, pro_mean=4.01, pro_std=5.18, z=0.68, reliability=high, strength=strong)"
+        }
+      },
+      "combined_score": {
+        "distance": 1.9996575117799023,
+        "deviation_percentile": 45.0386808441359,
+        "grade": "Excellent",
+        "shrinkage_alpha": 0.1,
+        "message": "combined: Excellent (mahalanobis=2.00, deviation_percentile=45.0 [higher=more unusual], features=['trail_elbow_angle', 'lead_elbow_angle', 'shoulder_tilt', 'hip_tilt', 'spine_tilt'])"
+      },
+      "pose_candidates": {
+        "mediapipe": {
+          "pose_detected": true,
+          "features": {
+            "trail_elbow_angle": 167.05580229219538,
+            "lead_elbow_angle": 168.5287939845436,
+            "shoulder_tilt": 172.4827569867487,
+            "hip_tilt": 175.62262334560978,
+            "spine_tilt": 7.5488342978572724
+          },
+          "landmarks": {
+            "NOSE": [
+              244.79284286499023,
+              217.92789459228516,
+              0.999981164932251
+            ],
+            "LEFT_SHOULDER": [
+              353.7615895271301,
+              253.7770128250122,
+              0.9999780058860779
+            ],
+            "RIGHT_SHOULDER": [
+              235.34839153289795,
+              238.15136432647705,
+              0.9999746680259705
+            ],
+            "LEFT_ELBOW": [
+              305.98411560058594,
+              375.05255699157715,
+              0.9921198487281799
+            ],
+            "RIGHT_ELBOW": [
+              239.3219232559204,
+              341.0571885108948,
+              0.9342479109764099
+            ],
+            "LEFT_WRIST": [
+              244.94553208351135,
+              469.1387414932251,
+              0.9849236607551575
+            ],
+            "RIGHT_WRIST": [
+              218.1566834449768,
+              452.71937370300293,
+              0.942867636680603
+            ],
+            "LEFT_HIP": [
+              349.6418237686157,
+              395.15440464019775,
+              0.999830424785614
+            ],
+            "RIGHT_HIP": [
+              278.28558683395386,
+              389.69218254089355,
+              0.9998540878295898
+            ],
+            "LEFT_KNEE": [
+              360.74849367141724,
+              539.8922824859619,
+              0.9893323183059692
+            ],
+            "RIGHT_KNEE": [
+              257.55735039711,
+              523.8814687728882,
+              0.9893926382064819
+            ],
+            "LEFT_ANKLE": [
+              365.1492476463318,
+              645.1501893997192,
+              0.9846768379211426
+            ],
+            "RIGHT_ANKLE": [
+              263.9141321182251,
+              638.8475131988525,
+              0.9834859371185303
+            ]
+          },
+          "computed_feature_count": 5,
+          "qc": {
+            "trail": {
+              "low_vis": false,
+              "bone": false,
+              "frame": false,
+              "inconsistent": false
+            },
+            "lead": {
+              "low_vis": false,
+              "bone": false,
+              "frame": false,
+              "inconsistent": false
+            },
+            "trail_elbow_source": "direct",
+            "lead_elbow_source": "direct"
+          }
+        },
+        "yolopose": null
+      },
+      "event_frame_path": "outputs\\baseline_snapshot_tracked\\test2\\frames\\7_finish.jpg",
+      "skeleton_comparison_path": "outputs\\baseline_snapshot_tracked\\test2\\skeletons\\7_finish.jpg",
+      "reference_skeleton_available": true,
+      "reference_skeleton_source": 886,
+      "skeleton_comparison_complete": true
+    }
+  },
+  "pose_backend_comparison": {
+    "mediapipe": {
+      "attempted": true,
+      "pose_detected_events": 8,
+      "notes": []
+    },
+    "yolopose": {
+      "attempted": false,
+      "pose_detected_events": 0,
+      "notes": []
+    },
+    "selected_backend": "mediapipe",
+    "selection_reason": "Requested backend 'mediapipe' was used."
+  },
+  "errors": [],
+  "event_frame_dir": "outputs\\baseline_snapshot_tracked\\test2\\frames",
+  "skeleton_comparison_dir": "outputs\\baseline_snapshot_tracked\\test2\\skeletons",
+  "dynamics": {
+    "Address->Toe-up": {
+      "trail_elbow_angle": {
+        "delta": -17.359460155245586,
+        "pro_median_delta": -9.849421950500044,
+        "robust_z": -0.7850757569523032,
+        "grade": "Excellent",
+        "reliability": "medium",
+        "feedback_strength": "normal",
+        "message": "Address->Toe-up trail_elbow_angle: Excellent (delta=-17.36, pro_median_delta=-9.85, robust_z=-0.79, reliability=medium)"
+      },
+      "lead_elbow_angle": {
+        "delta": -0.07387338710555014,
+        "pro_median_delta": -5.119941618440137,
+        "robust_z": 0.6770196498173742,
+        "grade": "Excellent",
+        "reliability": "high",
+        "feedback_strength": "strong",
+        "message": "Address->Toe-up lead_elbow_angle: Excellent (delta=-0.07, pro_median_delta=-5.12, robust_z=0.68, reliability=high)"
+      },
+      "shoulder_tilt": {
+        "delta": 15.868579767483254,
+        "pro_median_delta": -23.420284772001764,
+        "robust_z": 5.055695372706729,
+        "grade": "Needs Improvement",
+        "reliability": "high",
+        "feedback_strength": "strong",
+        "message": "Address->Toe-up shoulder_tilt: Needs Improvement (delta=15.87, pro_median_delta=-23.42, robust_z=5.06, reliability=high)"
+      },
+      "hip_tilt": {
+        "delta": 6.886596043463584,
+        "pro_median_delta": -3.800526250096709,
+        "robust_z": 3.3029563745289567,
+        "grade": "Needs Improvement",
+        "reliability": "high",
+        "feedback_strength": "strong",
+        "message": "Address->Toe-up hip_tilt: Needs Improvement (delta=6.89, pro_median_delta=-3.80, robust_z=3.30, reliability=high)"
+      },
+      "spine_tilt": {
+        "delta": 0.7075063902265839,
+        "pro_median_delta": 3.5508543181453858,
+        "robust_z": -1.0161169893652395,
+        "grade": "Good",
+        "reliability": "high",
+        "feedback_strength": "strong",
+        "message": "Address->Toe-up spine_tilt: Good (delta=0.71, pro_median_delta=3.55, robust_z=-1.02, reliability=high)"
+      }
+    },
+    "Toe-up->Mid-backswing": {
+      "trail_elbow_angle": {
+        "delta": -42.5064890982154,
+        "pro_median_delta": -16.87584899233157,
+        "robust_z": -1.4152394779840498,
+        "grade": "Good",
+        "reliability": "low",
+        "feedback_strength": "reference",
+        "message": "Toe-up->Mid-backswing trail_elbow_angle: Good (delta=-42.51, pro_median_delta=-16.88, robust_z=-1.42, reliability=low)"
+      },
+      "lead_elbow_angle": {
+        "delta": -30.56463812198959,
+        "pro_median_delta": -20.05733185906203,
+        "robust_z": -0.9072395301092654,
+        "grade": "Excellent",
+        "reliability": "medium",
+        "feedback_strength": "normal",
+        "message": "Toe-up->Mid-backswing lead_elbow_angle: Excellent (delta=-30.56, pro_median_delta=-20.06, robust_z=-0.91, reliability=medium)"
+      },
+      "shoulder_tilt": {
+        "delta": -38.84679578106193,
+        "pro_median_delta": -3.5747535818603495,
+        "robust_z": -3.08420002667608,
+        "grade": "Needs Improvement",
+        "reliability": "medium",
+        "feedback_strength": "normal",
+        "message": "Toe-up->Mid-backswing shoulder_tilt: Needs Improvement (delta=-38.85, pro_median_delta=-3.57, robust_z=-3.08, reliability=medium)"
+      },
+      "hip_tilt": {
+        "delta": -13.384243304208212,
+        "pro_median_delta": -0.5626325953576128,
+        "robust_z": -5.6828903948372576,
+        "grade": "Needs Improvement",
+        "reliability": "high",
+        "feedback_strength": "strong",
+        "message": "Toe-up->Mid-backswing hip_tilt: Needs Improvement (delta=-13.38, pro_median_delta=-0.56, robust_z=-5.68, reliability=high)"
+      },
+      "spine_tilt": {
+        "delta": -5.5094083939755585,
+        "pro_median_delta": 0.1106379217916853,
+        "robust_z": -2.8333468538418747,
+        "grade": "Needs Improvement",
+        "reliability": "high",
+        "feedback_strength": "strong",
+        "message": "Toe-up->Mid-backswing spine_tilt: Needs Improvement (delta=-5.51, pro_median_delta=0.11, robust_z=-2.83, reliability=high)"
+      }
+    },
+    "Mid-backswing->Top": {
+      "trail_elbow_angle": {
+        "delta": 24.257037325757963,
+        "pro_median_delta": -5.419622393841031,
+        "robust_z": 1.1930751872438592,
+        "grade": "Good",
+        "reliability": "low",
+        "feedback_strength": "reference",
+        "message": "Mid-backswing->Top trail_elbow_angle: Good (delta=24.26, pro_median_delta=-5.42, robust_z=1.19, reliability=low)"
+      },
+      "lead_elbow_angle": {
+        "delta": 18.4495141562152,
+        "pro_median_delta": -34.12260615268067,
+        "robust_z": 1.9618669809963813,
+        "grade": "Good",
+        "reliability": "low",
+        "feedback_strength": "reference",
+        "message": "Mid-backswing->Top lead_elbow_angle: Good (delta=18.45, pro_median_delta=-34.12, robust_z=1.96, reliability=low)"
+      },
+      "shoulder_tilt": {
+        "delta": 9.052937370105639,
+        "pro_median_delta": 13.159489460914557,
+        "robust_z": -0.24689466242183114,
+        "grade": "Excellent",
+        "reliability": "medium",
+        "feedback_strength": "normal",
+        "message": "Mid-backswing->Top shoulder_tilt: Excellent (delta=9.05, pro_median_delta=13.16, robust_z=-0.25, reliability=medium)"
+      },
+      "hip_tilt": {
+        "delta": 0.08839281510827846,
+        "pro_median_delta": 1.5583089225370088,
+        "robust_z": -0.5052085605776011,
+        "grade": "Excellent",
+        "reliability": "high",
+        "feedback_strength": "strong",
+        "message": "Mid-backswing->Top hip_tilt: Excellent (delta=0.09, pro_median_delta=1.56, robust_z=-0.51, reliability=high)"
+      },
+      "spine_tilt": {
+        "delta": 3.694749309492,
+        "pro_median_delta": 0.05215664237611817,
+        "robust_z": 1.1309504002873523,
+        "grade": "Good",
+        "reliability": "high",
+        "feedback_strength": "strong",
+        "message": "Mid-backswing->Top spine_tilt: Good (delta=3.69, pro_median_delta=0.05, robust_z=1.13, reliability=high)"
+      }
+    },
+    "Top->Mid-downswing": {
+      "trail_elbow_angle": {
+        "delta": -21.026848779873603,
+        "pro_median_delta": -24.588420340236524,
+        "robust_z": 0.09923267517529036,
+        "grade": "Excellent",
+        "reliability": "low",
+        "feedback_strength": "reference",
+        "message": "Top->Mid-downswing trail_elbow_angle: Excellent (delta=-21.03, pro_median_delta=-24.59, robust_z=0.10, reliability=low)"
+      },
+      "lead_elbow_angle": {
+        "delta": -16.986459635672077,
+        "pro_median_delta": 31.05642694796041,
+        "robust_z": -2.003626205567369,
+        "grade": "Needs Improvement",
+        "reliability": "low",
+        "feedback_strength": "reference",
+        "message": "Top->Mid-downswing lead_elbow_angle: Needs Improvement (delta=-16.99, pro_median_delta=31.06, robust_z=-2.00, reliability=low) Low reliability: this event-pair/feature has high individual variation (sometimes genuinely bimodal), treat as a reference signal, not a strong correction."
+      },
+      "shoulder_tilt": {
+        "delta": -7.814555578744859,
+        "pro_median_delta": 1.5463457485049048,
+        "robust_z": -0.6639713642847372,
+        "grade": "Excellent",
+        "reliability": "medium",
+        "feedback_strength": "normal",
+        "message": "Top->Mid-downswing shoulder_tilt: Excellent (delta=-7.81, pro_median_delta=1.55, robust_z=-0.66, reliability=medium)"
+      },
+      "hip_tilt": {
+        "delta": -0.051087697560063816,
+        "pro_median_delta": 0.13487978051955452,
+        "robust_z": -0.04975773521163651,
+        "grade": "Excellent",
+        "reliability": "high",
+        "feedback_strength": "strong",
+        "message": "Top->Mid-downswing hip_tilt: Excellent (delta=-0.05, pro_median_delta=0.13, robust_z=-0.05, reliability=high)"
+      },
+      "spine_tilt": {
+        "delta": -3.7889093252807924,
+        "pro_median_delta": 0.8296079587454808,
+        "robust_z": -1.5488232945879783,
+        "grade": "Good",
+        "reliability": "high",
+        "feedback_strength": "strong",
+        "message": "Top->Mid-downswing spine_tilt: Good (delta=-3.79, pro_median_delta=0.83, robust_z=-1.55, reliability=high)"
+      }
+    },
+    "Mid-downswing->Impact": {
+      "trail_elbow_angle": {
+        "delta": 56.63576070757662,
+        "pro_median_delta": 47.57085660225581,
+        "robust_z": 0.33738607518301955,
+        "grade": "Excellent",
+        "reliability": "low",
+        "feedback_strength": "reference",
+        "message": "Mid-downswing->Impact trail_elbow_angle: Excellent (delta=56.64, pro_median_delta=47.57, robust_z=0.34, reliability=low)"
+      },
+      "lead_elbow_angle": {
+        "delta": 29.175456988552014,
+        "pro_median_delta": 26.892765661952694,
+        "robust_z": 0.17941182127487637,
+        "grade": "Excellent",
+        "reliability": "medium",
+        "feedback_strength": "normal",
+        "message": "Mid-downswing->Impact lead_elbow_angle: Excellent (delta=29.18, pro_median_delta=26.89, robust_z=0.18, reliability=medium)"
+      },
+      "shoulder_tilt": {
+        "delta": 21.739834222217837,
+        "pro_median_delta": 31.913108016227255,
+        "robust_z": -0.8190617480687716,
+        "grade": "Excellent",
+        "reliability": "medium",
+        "feedback_strength": "normal",
+        "message": "Mid-downswing->Impact shoulder_tilt: Excellent (delta=21.74, pro_median_delta=31.91, robust_z=-0.82, reliability=medium)"
+      },
+      "hip_tilt": {
+        "delta": 6.460342143196442,
+        "pro_median_delta": 5.604619593538814,
+        "robust_z": 0.20908117289315772,
+        "grade": "Excellent",
+        "reliability": "high",
+        "feedback_strength": "strong",
+        "message": "Mid-downswing->Impact hip_tilt: Excellent (delta=6.46, pro_median_delta=5.60, robust_z=0.21, reliability=high)"
+      },
+      "spine_tilt": {
+        "delta": 4.8960620195377675,
+        "pro_median_delta": 8.335573827194843,
+        "robust_z": -0.8380844329856769,
+        "grade": "Excellent",
+        "reliability": "high",
+        "feedback_strength": "strong",
+        "message": "Mid-downswing->Impact spine_tilt: Excellent (delta=4.90, pro_median_delta=8.34, robust_z=-0.84, reliability=high)"
+      }
+    },
+    "Impact->Mid-follow-through": {
+      "trail_elbow_angle": {
+        "delta": -15.751238649627766,
+        "pro_median_delta": -0.886155770765896,
+        "robust_z": -1.016953356323698,
+        "grade": "Good",
+        "reliability": "medium",
+        "feedback_strength": "normal",
+        "message": "Impact->Mid-follow-through trail_elbow_angle: Good (delta=-15.75, pro_median_delta=-0.89, robust_z=-1.02, reliability=medium)"
+      },
+      "lead_elbow_angle": {
+        "delta": -11.751004783721186,
+        "pro_median_delta": -7.367031375635634,
+        "robust_z": -0.32898844518444925,
+        "grade": "Excellent",
+        "reliability": "medium",
+        "feedback_strength": "normal",
+        "message": "Impact->Mid-follow-through lead_elbow_angle: Excellent (delta=-11.75, pro_median_delta=-7.37, robust_z=-0.33, reliability=medium)"
+      },
+      "shoulder_tilt": {
+        "delta": 16.50543538618453,
+        "pro_median_delta": 11.788302925703647,
+        "robust_z": 0.4754642525197483,
+        "grade": "Excellent",
+        "reliability": "high",
+        "feedback_strength": "strong",
+        "message": "Impact->Mid-follow-through shoulder_tilt: Excellent (delta=16.51, pro_median_delta=11.79, robust_z=0.48, reliability=high)"
+      },
+      "hip_tilt": {
+        "delta": 7.117452102327292,
+        "pro_median_delta": 1.567801633517007,
+        "robust_z": 1.4284928331976456,
+        "grade": "Good",
+        "reliability": "high",
+        "feedback_strength": "strong",
+        "message": "Impact->Mid-follow-through hip_tilt: Good (delta=7.12, pro_median_delta=1.57, robust_z=1.43, reliability=high)"
+      },
+      "spine_tilt": {
+        "delta": -0.42739906743655176,
+        "pro_median_delta": 1.1517296810270325,
+        "robust_z": -0.5207759309404486,
+        "grade": "Excellent",
+        "reliability": "high",
+        "feedback_strength": "strong",
+        "message": "Impact->Mid-follow-through spine_tilt: Excellent (delta=-0.43, pro_median_delta=1.15, robust_z=-0.52, reliability=high)"
+      }
+    },
+    "Mid-follow-through->Finish": {
+      "trail_elbow_angle": {
+        "delta": 8.414930905591035,
+        "pro_median_delta": -76.01934748526341,
+        "robust_z": 1.8318284983155657,
+        "grade": "Good",
+        "reliability": "low",
+        "feedback_strength": "reference",
+        "message": "Mid-follow-through->Finish trail_elbow_angle: Good (delta=8.41, pro_median_delta=-76.02, robust_z=1.83, reliability=low)"
+      },
+      "lead_elbow_angle": {
+        "delta": 4.115424044424941,
+        "pro_median_delta": -85.06827059209849,
+        "robust_z": 1.5157364595060492,
+        "grade": "Good",
+        "reliability": "low",
+        "feedback_strength": "reference",
+        "message": "Mid-follow-through->Finish lead_elbow_angle: Good (delta=4.12, pro_median_delta=-85.07, robust_z=1.52, reliability=low)"
+      },
+      "shoulder_tilt": {
+        "delta": -35.64772540499496,
+        "pro_median_delta": -27.31448447470254,
+        "robust_z": -0.2341140153900274,
+        "grade": "Excellent",
+        "reliability": "low",
+        "feedback_strength": "reference",
+        "message": "Mid-follow-through->Finish shoulder_tilt: Excellent (delta=-35.65, pro_median_delta=-27.31, robust_z=-0.23, reliability=low)"
+      },
+      "hip_tilt": {
+        "delta": -16.24046063216042,
+        "pro_median_delta": -9.45010548647329,
+        "robust_z": -0.6100821061286534,
+        "grade": "Excellent",
+        "reliability": "medium",
+        "feedback_strength": "normal",
+        "message": "Mid-follow-through->Finish hip_tilt: Excellent (delta=-16.24, pro_median_delta=-9.45, robust_z=-0.61, reliability=medium)"
+      },
+      "spine_tilt": {
+        "delta": -0.7143406412307076,
+        "pro_median_delta": -13.852015667311466,
+        "robust_z": 2.3683068578277147,
+        "grade": "Needs Improvement",
+        "reliability": "high",
+        "feedback_strength": "strong",
+        "message": "Mid-follow-through->Finish spine_tilt: Needs Improvement (delta=-0.71, pro_median_delta=-13.85, robust_z=2.37, reliability=high)"
+      }
+    }
+  }
+}

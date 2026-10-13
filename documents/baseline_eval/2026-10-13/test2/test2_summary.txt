@@ -1,0 +1,65 @@
+Golf posture analysis summary
+Video: raw_videos\test2.mp4
+Mock events: False
+Handedness: right
+Pose backend request: mediapipe
+Event frames: outputs\baseline_snapshot_tracked\test2\frames
+Skeleton comparisons: outputs\baseline_snapshot_tracked\test2\skeletons
+Selected backend: mediapipe
+Selection reason: Requested backend 'mediapipe' was used.
+
+Address: frame=148 pose=True backend=mediapipe
+  - trail_elbow_angle: Excellent value=174.3921100362321 z=0.50 reliability=medium strength=normal
+  - lead_elbow_angle: Excellent value=176.16437472383984 z=0.24 reliability=medium strength=normal
+  - shoulder_tilt: Excellent value=-168.37495299444086 z=0.02 reliability=medium strength=normal
+  - hip_tilt: Excellent value=-175.25436812455715 z=0.02 reliability=medium strength=normal
+  - spine_tilt: Good value=8.690574006524532 z=1.26 reliability=high strength=strong
+
+Toe-up: frame=188 pose=True backend=mediapipe
+  - trail_elbow_angle: Excellent value=157.03264988098653 z=-0.13 reliability=medium strength=normal
+  - lead_elbow_angle: Excellent value=176.0905013367343 z=0.75 reliability=medium strength=normal
+  - shoulder_tilt: Good value=-152.5063732269576 z=1.60 reliability=low strength=reference
+  - hip_tilt: Excellent value=-168.36777208109356 z=0.47 reliability=low strength=reference
+  - spine_tilt: Excellent value=9.398080396751116 z=0.52 reliability=high strength=strong
+
+Mid-backswing: frame=172 pose=True backend=mediapipe
+  - trail_elbow_angle: Good value=114.52616078277113 z=-1.06 reliability=low strength=reference
+  - lead_elbow_angle: Excellent value=145.5258632147447 z=0.09 reliability=low strength=reference
+  - shoulder_tilt: Excellent value=168.6468309919805 z=0.24 reliability=low strength=reference
+  - hip_tilt: Excellent value=178.2479846146982 z=-0.06 reliability=medium strength=normal
+  - spine_tilt: Excellent value=3.8886720027755572 z=-0.57 reliability=high strength=strong
+
+Top: frame=179 pose=True backend=mediapipe
+  - trail_elbow_angle: Excellent value=138.7831981085291 z=0.12 reliability=low strength=reference
+  - lead_elbow_angle: Good value=163.9753773709599 z=1.71 reliability=low strength=reference
+  - shoulder_tilt: Excellent value=177.69976836208613 z=0.07 reliability=low strength=reference
+  - hip_tilt: Excellent value=178.33637742980648 z=-0.10 reliability=low strength=reference
+  - spine_tilt: Excellent value=7.583421312267557 z=0.09 reliability=high strength=strong
+
+Mid-downswing: frame=174 pose=True backend=mediapipe
+  - trail_elbow_angle: Excellent value=117.75634932865549 z=0.39 reliability=low strength=reference
+  - lead_elbow_angle: Excellent value=146.98891773528783 z=0.34 reliability=medium strength=normal
+  - shoulder_tilt: Excellent value=169.88521278334127 z=-0.51 reliability=medium strength=normal
+  - hip_tilt: Excellent value=178.2852897322464 z=-0.34 reliability=high strength=strong
+  - spine_tilt: Excellent value=3.7945119869867647 z=-0.86 reliability=high strength=strong
+
+Impact: frame=148 pose=True backend=mediapipe
+  - trail_elbow_angle: Good value=174.3921100362321 z=1.27 reliability=medium strength=normal
+  - lead_elbow_angle: Excellent value=176.16437472383984 z=0.42 reliability=medium strength=normal
+  - shoulder_tilt: Excellent value=-168.37495299444086 z=-0.71 reliability=low strength=reference
+  - hip_tilt: Excellent value=-175.25436812455715 z=-0.07 reliability=low strength=reference
+  - spine_tilt: Good value=8.690574006524532 z=-1.08 reliability=high strength=strong
+
+Mid-follow-through: frame=190 pose=True backend=mediapipe
+  - trail_elbow_angle: Excellent value=158.64087138660435 z=0.09 reliability=medium strength=normal
+  - lead_elbow_angle: Excellent value=164.41336994011866 z=0.22 reliability=low strength=reference
+  - shoulder_tilt: Excellent value=-151.86951760825633 z=-0.78 reliability=medium strength=normal
+  - hip_tilt: Excellent value=-168.13691602222985 z=0.19 reliability=medium strength=normal
+  - spine_tilt: Good value=8.26317493908798 z=-1.20 reliability=high strength=strong
+
+Finish: frame=121 pose=True backend=mediapipe
+  - trail_elbow_angle: Good value=167.05580229219538 z=1.86 reliability=low strength=reference
+  - lead_elbow_angle: Good value=168.5287939845436 z=1.71 reliability=low strength=reference
+  - shoulder_tilt: Excellent value=172.4827569867487 z=0.07 reliability=low strength=reference
+  - hip_tilt: Excellent value=175.62262334560978 z=-0.04 reliability=low strength=reference
+  - spine_tilt: Excellent value=7.5488342978572724 z=0.68 reliability=high strength=strong

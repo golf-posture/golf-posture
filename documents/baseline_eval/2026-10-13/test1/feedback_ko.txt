@@ -1,0 +1,51 @@
+[전체 요약]
+Excellent 25개, Good 7개, Needs Improvement 2개, unavailable 6개입니다.
+총 40개 항목 중 교정이 필요한 항목이 2개 확인되었습니다.
+일부 항목은 필요한 관절이 검출되지 않아 평가할 수 없습니다.
+
+[자세 평가 요약표]
+Event               trail_elbow_angle  lead_elbow_angle  shoulder_tilt       hip_tilt   spine_tilt
+------------------  -----------------  ----------------  ------------------  ---------  ----------
+Address             Excellent          Excellent         Excellent           Excellent  Good      
+Toe-up              Excellent          Excellent         Excellent           Excellent  Good      
+Mid-backswing       Good*              unavailable*      Excellent           Excellent  Excellent 
+Top                 Excellent          Good*             Excellent           Excellent  Good      
+Mid-downswing       unavailable*       unavailable       Excellent           Excellent  Excellent 
+Impact              Excellent          unavailable       Needs Improvement*  Excellent  Excellent 
+Mid-follow-through  unavailable        unavailable*      Needs Improvement   Excellent  Good      
+Finish              Excellent          Excellent         Excellent           Excellent  Good      
+
+* = 프로 선수 간 개인차가 큰 항목으로 참고용 지표
+
+[핵심 피드백]
+1. 팔로우스루 중간 단계에서 어깨 기울기가 프로 기준과 크게 차이가 있습니다. 일반적인 점검 항목으로 참고할 수 있습니다. z-score는 -2.43입니다.
+2. 어드레스 단계에서 척추 기울기가 프로 기준과 약간 차이가 있습니다. 이 항목은 프로 선수들 사이에서도 공통성이 높은 지표이므로 우선적으로 확인하는 것이 좋습니다. z-score는 1.90입니다.
+3. 팔로우스루 중간 단계에서 척추 기울기가 프로 기준과 약간 차이가 있습니다. 이 항목은 프로 선수들 사이에서도 공통성이 높은 지표이므로 우선적으로 확인하는 것이 좋습니다. z-score는 -1.67입니다.
+4. 탑 단계에서 척추 기울기가 프로 기준과 약간 차이가 있습니다. 이 항목은 프로 선수들 사이에서도 공통성이 높은 지표이므로 우선적으로 확인하는 것이 좋습니다. z-score는 -1.67입니다.
+5. 토업 단계에서 척추 기울기가 프로 기준과 약간 차이가 있습니다. 이 항목은 프로 선수들 사이에서도 공통성이 높은 지표이므로 우선적으로 확인하는 것이 좋습니다. z-score는 1.20입니다.
+
+[참고 지표]
+- 임팩트 단계의 어깨 기울기는 프로 기준과 차이가 있으나, 프로 선수 간 개인차가 큰 항목이므로 참고용으로만 보는 것이 적절합니다.
+- 탑 단계의 리드 팔꿈치 각도는 프로 기준과 차이가 있으나, 프로 선수 간 개인차가 큰 항목이므로 참고용으로만 보는 것이 적절합니다.
+- 백스윙 중간 단계의 트레일 팔꿈치 각도는 프로 기준과 차이가 있으나, 프로 선수 간 개인차가 큰 항목이므로 참고용으로만 보는 것이 적절합니다.
+
+[결합 스코어 참고 - 항목 조합 이상 탐지]
+- 어드레스 단계는 개별 항목은 대체로 양호하지만, 5개 항목의 조합이 프로 데이터 분포 기준 이례도 99.8%로 매우 드문 패턴입니다. (이례도 수치가 높을수록 프로 데이터에서 벗어난 조합입니다.)
+
+[스윙 다이내믹스 참고 - 이벤트 간 변화량]
+- 토업에서 백스윙 중간으로 이어지는 구간의 척추 기울기 변화량이 프로 기준과 크게 차이가 있습니다. 이 구간은 프로 선수들 사이에서도 변화 패턴이 일관적인 지표이므로 확인하는 것이 좋습니다. robust_z는 -4.53입니다.
+- 팔로우스루 중간에서 피니시로 이어지는 구간의 척추 기울기 변화량이 프로 기준과 크게 차이가 있습니다. 이 구간은 프로 선수들 사이에서도 변화 패턴이 일관적인 지표이므로 확인하는 것이 좋습니다. robust_z는 3.41입니다.
+- 임팩트에서 팔로우스루 중간으로 이어지는 구간의 척추 기울기 변화량이 프로 기준과 크게 차이가 있습니다. 이 구간은 프로 선수들 사이에서도 변화 패턴이 일관적인 지표이므로 확인하는 것이 좋습니다. robust_z는 -2.74입니다.
+- 어드레스에서 토업으로 이어지는 구간의 리드 팔꿈치 각도 변화량이 프로 기준과 크게 차이가 있습니다. 이 구간은 프로 선수들 사이에서도 변화 패턴이 일관적인 지표이므로 확인하는 것이 좋습니다. robust_z는 2.01입니다.
+- 다운스윙 중간에서 임팩트로 이어지는 구간의 어깨 기울기 변화량이 프로 기준과 크게 차이가 있습니다. 일반적인 점검 항목으로 참고할 수 있습니다. robust_z는 -5.47입니다.
+- 토업에서 백스윙 중간으로 이어지는 구간의 트레일 팔꿈치 각도 변화량은 프로 기준과 차이가 있으나, 프로 선수 간 개인차가 큰 구간이므로 참고용으로만 보는 것이 적절합니다.
+- 팔로우스루 중간에서 피니시로 이어지는 구간의 어깨 기울기 변화량은 프로 기준과 차이가 있으나, 프로 선수 간 개인차가 큰 구간이므로 참고용으로만 보는 것이 적절합니다.
+- 백스윙 중간에서 탑으로 이어지는 구간의 트레일 팔꿈치 각도 변화량은 프로 기준과 차이가 있으나, 프로 선수 간 개인차가 큰 구간이므로 참고용으로만 보는 것이 적절합니다.
+
+[결과 파일]
+- JSON 상세 결과: outputs\baseline_snapshot_tracked\test1\test1_result.json
+- 기본 텍스트 요약: outputs\baseline_snapshot_tracked\test1\test1_summary.txt
+- 표 CSV: outputs\baseline_snapshot_tracked\test1\feedback_table.csv
+- 한국어 피드백: outputs\baseline_snapshot_tracked\test1\feedback_ko.txt
+- keyframe 이미지 폴더: outputs\baseline_snapshot_tracked\test1\frames
+- skeleton 비교 이미지 폴더: outputs\baseline_snapshot_tracked\test1\skeletons

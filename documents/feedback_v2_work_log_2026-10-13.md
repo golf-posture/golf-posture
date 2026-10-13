@@ -12,7 +12,7 @@
 | 사용자 영상 추출은? | **추적 방식으로 전환** (`--extraction tracked`, 기본). **채점 기준은 기존 통계를 그대로 유지** (`--reference legacy`, 기본). QC 정제된 추적 기준(`data/tracked/`)은 선택 옵션(`--reference tracked`)으로만 보존 |
 | 부수적으로 발견한 것 | 기존 기준 통계가 이상치 때문에 관대함(자기 \|z\|≤1 비율 85.9% vs 기대 68.3%). 추적 기준은 69.5%로 보정되지만 표준편차가 크게 좁아져(중앙값 0.67배) 등급이 엄격해지므로 **기본값으로 바꾸지 않음**. 영상이 독립 표본이 아님(고유 youtube_id 160개) |
 
-테스트: 작업 시작 시 43개 → 현재 **154개 모두 통과**.
+테스트: 작업 시작 시 43개 → 현재 **129개 모두 통과** (실험 모듈 정리 후; 정리 전 154개).
 
 ## 1. 출발점
 
@@ -33,7 +33,7 @@
 - `MediaPipePoseBackend`가 `static_image_mode=True`라 이벤트 프레임 8장을 서로 무관한 이미지처럼 추론했다. 앞뒤 프레임의 맥락이 없었다.
 - 결측은 trail 팔꿈치의 Mid-backswing/Top/Mid-downswing에 집중. 원인은 (1) 실제 가림과 (2) 보이는데 모델이 확신하지 못함이 섞여 있었다 (v196 오버레이: 팔이 뚜렷이 보이는데 기존 설정에서 결측).
 
-### 2.2 실험 1 — 임계값과 모델 (50개 영상, `pipeline/experiment_reextract_pose.py`)
+### 2.2 실험 1 — 임계값과 모델 (50개 영상, 실험 스크립트는 정리되어 삭제됨)
 
 | 조건 | trail 결측 | lead 결측 | 새로 채운 값의 모델 간 불일치 (새 값/기존 값) |
 |---|---|---|---|
@@ -45,7 +45,7 @@
 
 결론: 임계값만 낮추면 결측은 주나 노이즈가 늘고, heavy 모델은 visibility를 더 보수적으로 보고해 오히려 나빠진다 → 폐기.
 
-### 2.3 실험 2 — 영상 모드 추적 + 시간축 복구 + 2D/3D (50개 영상, `pipeline/experiment_temporal_pose.py`)
+### 2.3 실험 2 — 영상 모드 추적 + 시간축 복구 + 2D/3D (50개 영상, 실험 스크립트는 정리되어 삭제됨; 추적·각도·복구 로직은 `pose_tracking.py`로 이전)
 
 | 조건 | trail 결측 | lead 결측 | 40차원 complete | 32차원(trail 제외) complete |
 |---|---|---|---|---|
@@ -108,7 +108,7 @@
 - 널(열별 셔플)은 특징 간 상관까지 파괴하는 약한 검정이라 통과는 구조의 증거가 아니다.
 - **결론: 이산 프로 유형은 이 데이터로 지지되지 않는다. v2 항목 3(클러스터별 medoid/통계)은 구현하지 않는다.**
 
-### 2.7 연속 개인화(kNN) 검증 (`pipeline/experiment_knn_personalization.py`)
+### 2.7 연속 개인화(kNN) 검증 (실험 스크립트는 정리되어 삭제됨)
 
 "나와 가장 가까운 프로 K명"을 기준으로 채점하면 전역 기준보다 나은지 시험. 기존 정지 프레임 데이터(`data/pro_feature_raw.csv`, 사용자 파이프라인과 같은 추출)로 `youtube_id` 그룹 단위 leave-one-out. **이웃은 Address 특징으로만 선택하고 이후 이벤트(1~7)를 채점**해 "가까운 사람으로 뽑아서 정상으로 보이는" 순환을 피했다. 무작위 K 대조군 포함.
 
@@ -140,7 +140,7 @@
 ## 3. 검증
 
 ### 3.1 단위 테스트
-154개 통과. 신규: 추적/각도/복구(`test_experiment_temporal_pose`), 재추출 헬퍼, 추적 추출 행 생성, QC 규칙, 클러스터링 수치 함수(ARI, silhouette, PCA, k-means, 원형 선형화, 그룹 부트스트랩), kNN 헬퍼, 사용자 추적, 추출 방식 분기, 기준 통계 입력.
+129개 통과 (실험 모듈 정리 후). 신규: 추적/각도/복구(`test_pose_tracking`), 재추출 헬퍼, 추적 추출 행 생성, QC 규칙, 클러스터링 수치 함수(ARI, silhouette, PCA, k-means, 원형 선형화, 그룹 부트스트랩), kNN 헬퍼, 사용자 추적, 추출 방식 분기, 기준 통계 입력.
 
 ### 3.2 베이스라인 6개 영상 end-to-end (`--pose-backend mediapipe`)
 
@@ -221,12 +221,9 @@
 | `pipeline/qc_tracked_features.py` | QC 플래그, `clean_tracked` |
 | `pipeline/export_tracked_stats_input.py` | QC 정제 데이터 → 기존 통계 스크립트 입력 스키마 |
 | `pipeline/diagnose_clustering.py` | 사전 고정 기준 클러스터링 진단 |
-| `pipeline/experiment_reextract_pose.py` | 실험 1 (임계값/모델) — 재현용 |
-| `pipeline/experiment_temporal_pose.py` | 실험 2 (추적/복구/3D) — 재현용 |
-| `pipeline/experiment_knn_personalization.py` | kNN 개인화 검증 |
 
 ### 신규 테스트 (`tests/`)
-`test_experiment_reextract_pose.py`, `test_experiment_temporal_pose.py`, `test_extract_pro_features_tracked.py`, `test_qc_tracked_features.py`, `test_diagnose_clustering.py`, `test_experiment_knn_personalization.py`, `test_user_tracking.py`, `test_run_analysis_extraction.py`, `test_tracked_stats_input.py`
+`test_pose_tracking.py`, `test_extract_pro_features_tracked.py`, `test_qc_tracked_features.py`, `test_diagnose_clustering.py`, `test_user_tracking.py`, `test_run_analysis_extraction.py`, `test_tracked_stats_input.py`
 
 ### 신규 데이터
 | 파일 | 내용 |
@@ -279,14 +276,13 @@ pixi run python -m pipeline.compute_dynamics_stats \
   --summary outputs/tracked/pro_dynamics_summary.txt
 ```
 
-### 실험 재현
+### 진단·테스트
 ```bash
-pixi run python -m pipeline.experiment_reextract_pose --sample-size 50   # 실험 1
-pixi run python -m pipeline.experiment_temporal_pose --sample-size 50    # 실험 2
 pixi run python -m pipeline.diagnose_clustering                          # 클러스터링 진단 (48 설정)
-pixi run python -m pipeline.experiment_knn_personalization               # kNN 검증
-pixi run python -m pytest                                                # 154개
+pixi run python -m pytest                                                # 129개
 ```
+
+실험 1·2·kNN 스크립트(`experiment_*.py`)는 정리해 삭제했다. 결과와 설계는 이 문서 2.2·2.3·2.7절과 `feedback_v2_clustering_retry.md`에 남아 있고, 재사용되는 로직(추적, 각도, 시간축 복구)은 `pose_tracking.py`에 있다. 스크립트는 한 번도 커밋되지 않아 되살릴 수 없다.
 
 ## 7. 한계와 미해결
 
@@ -303,10 +299,16 @@ pixi run python -m pytest                                                # 154�
 
 **결정 완료**: 기본 = 추적 추출 + 기존 기준 + 사용자 팔꿈치 QC 유지. `data/tracked/` 통계는 `--reference tracked` 선택 옵션으로 보존.
 
+결정 사항 (2026-10-13):
+
+- **실험 모듈 정리**: `experiment_reextract_pose.py`, `experiment_temporal_pose.py`, `experiment_knn_personalization.py`와 그 테스트를 삭제했다. 재사용 로직의 테스트는 `tests/test_pose_tracking.py`로 옮겼다.
+- **슬로모션 중복 영상**: 기준 통계에 반영하지 않는다 (4.1의 위험은 인지한 채로 유지).
+- **왼손잡이 처리**: 일단 하지 않는다 (전원 오른손잡이 가정 유지).
+- **새 베이스라인 스냅샷**: `documents/baseline_eval/2026-10-13/` (추적 추출 + 기존 기준, `--pose-backend mediapipe`).
+- **커밋 범위**: 채점 경로 코드·테스트·문서는 커밋함. `data/tracked/` 등은 미정.
+
 남은 결정:
 
-1. **커밋 여부와 범위.** 아직 아무것도 커밋하지 않았다. `data/` 신규 CSV·JSON이 `.gitignore`에 없어 추적 대상이 된다 (기본 실행은 `data/tracked/`가 필요 없지만 `--reference tracked`는 필요 — 이 파일들을 저장소에 둘지, 생성 절차만 문서화할지 결정 필요).
-2. **실험 모듈 3개** (`experiment_*.py`)를 남길지 정리할지. 재현용으로 남겨 두었고, 정식 코드는 이미 `pose_tracking.py`로 분리해 의존하지 않는다.
-3. **중복(슬로모션) 문제를 기준 통계에 반영할지** (예: slow==0만 사용하거나 youtube_id 단위 가중). 영향 크기부터 측정해야 한다.
-4. **왼손잡이 처리** (라벨에 정보 없음).
-5. 추적 모드를 `hybrid` 등으로 확장할지.
+1. **커밋 범위(나머지)**: `data/tracked/`, 추적 재추출 CSV 2개, `diagnose_clustering.py`, `export_tracked_stats_input.py`, `feedback_v2_clustering_retry.md`. `data/` 신규 파일이 `.gitignore`에 없어 추적 대상이 된다. `--reference tracked`는 `data/tracked/`가 필요하다.
+2. 추적 모드를 `hybrid` 등으로 확장할지.
+3. 기존 기준의 관대함 교정 / tilt 표준편차 하한은 별도 결정.

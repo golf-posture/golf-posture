@@ -1,0 +1,45 @@
+[전체 요약]
+Excellent 38개, Good 1개, Needs Improvement 0개, unavailable 1개입니다.
+총 40개 항목 중 큰 교정 항목은 없고, 일부 점검 항목이 1개 확인되었습니다.
+일부 항목은 필요한 관절이 검출되지 않아 평가할 수 없습니다.
+
+[자세 평가 요약표]
+Event               trail_elbow_angle  lead_elbow_angle  shoulder_tilt  hip_tilt   spine_tilt
+------------------  -----------------  ----------------  -------------  ---------  ----------
+Address             Excellent          Excellent         Excellent      Excellent  Excellent 
+Toe-up              Excellent          Excellent         Excellent      Excellent  Excellent 
+Mid-backswing       Excellent          unavailable*      Excellent      Excellent  Excellent 
+Top                 Excellent          Excellent         Excellent      Excellent  Excellent 
+Mid-downswing       Excellent          Excellent         Excellent      Excellent  Excellent 
+Impact              Excellent          Excellent         Excellent      Excellent  Excellent 
+Mid-follow-through  Excellent          Excellent         Excellent      Excellent  Excellent 
+Finish              Excellent          Good*             Excellent      Excellent  Excellent 
+
+* = 프로 선수 간 개인차가 큰 항목으로 참고용 지표
+
+[핵심 피드백]
+우선적으로 교정해야 할 항목은 확인되지 않았습니다.
+
+[참고 지표]
+- 피니시 단계의 리드 팔꿈치 각도는 프로 기준과 차이가 있으나, 프로 선수 간 개인차가 큰 항목이므로 참고용으로만 보는 것이 적절합니다.
+- 백스윙 중간 단계의 리드 팔꿈치 각도는 프로 기준과 차이가 있으나, 프로 선수 간 개인차가 큰 항목이므로 참고용으로만 보는 것이 적절합니다.
+
+[결합 스코어 참고 - 항목 조합 이상 탐지]
+- 결합 스코어 관점에서 특별히 이례적인 이벤트는 없습니다.
+
+[스윙 다이내믹스 참고 - 이벤트 간 변화량]
+- 어드레스에서 토업으로 이어지는 구간의 어깨 기울기 변화량이 프로 기준과 크게 차이가 있습니다. 이 구간은 프로 선수들 사이에서도 변화 패턴이 일관적인 지표이므로 확인하는 것이 좋습니다. robust_z는 2.11입니다.
+- 토업에서 백스윙 중간으로 이어지는 구간의 골반 기울기 변화량이 프로 기준과 약간 차이가 있습니다. 이 구간은 프로 선수들 사이에서도 변화 패턴이 일관적인 지표이므로 확인하는 것이 좋습니다. robust_z는 -1.84입니다.
+- 어드레스에서 토업으로 이어지는 구간의 골반 기울기 변화량이 프로 기준과 약간 차이가 있습니다. 이 구간은 프로 선수들 사이에서도 변화 패턴이 일관적인 지표이므로 확인하는 것이 좋습니다. robust_z는 1.55입니다.
+- 백스윙 중간에서 탑으로 이어지는 구간의 어깨 기울기 변화량이 프로 기준과 약간 차이가 있습니다. 일반적인 점검 항목으로 참고할 수 있습니다. robust_z는 -1.12입니다.
+- 다운스윙 중간에서 임팩트로 이어지는 구간의 어깨 기울기 변화량이 프로 기준과 약간 차이가 있습니다. 일반적인 점검 항목으로 참고할 수 있습니다. robust_z는 -1.09입니다.
+- 팔로우스루 중간에서 피니시로 이어지는 구간의 리드 팔꿈치 각도 변화량은 프로 기준과 차이가 있으나, 프로 선수 간 개인차가 큰 구간이므로 참고용으로만 보는 것이 적절합니다.
+- 탑에서 다운스윙 중간으로 이어지는 구간의 리드 팔꿈치 각도 변화량은 프로 기준과 차이가 있으나, 프로 선수 간 개인차가 큰 구간이므로 참고용으로만 보는 것이 적절합니다.
+
+[결과 파일]
+- JSON 상세 결과: outputs\baseline_snapshot_tracked\shorts2\shorts2_result.json
+- 기본 텍스트 요약: outputs\baseline_snapshot_tracked\shorts2\shorts2_summary.txt
+- 표 CSV: outputs\baseline_snapshot_tracked\shorts2\feedback_table.csv
+- 한국어 피드백: outputs\baseline_snapshot_tracked\shorts2\feedback_ko.txt
+- keyframe 이미지 폴더: outputs\baseline_snapshot_tracked\shorts2\frames
+- skeleton 비교 이미지 폴더: outputs\baseline_snapshot_tracked\shorts2\skeletons
