@@ -18,6 +18,8 @@ __pycache__/
 *.pyc
 *.pyo
 .pixi/
+.pytest_cache/
+.coverage
 
 # IDE
 .idea/
@@ -41,3 +43,7 @@ data_raw/
 
 # Pipeline outputs
 outputs/
+
+#personal files
+.documents/
+documents/
