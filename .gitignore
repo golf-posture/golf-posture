@@ -48,3 +48,12 @@ outputs/
 .documents/
 documents/
 data/tracked/
+data/pro_feature_raw_tracked.csv
+data/pro_feature_qc_tracked.csv
+learning_video/
+
+# Analysis-only tools (not needed to run an evaluation)
+pipeline/diagnose_clustering.py
+pipeline/export_tracked_stats_input.py
+tests/test_diagnose_clustering.py
+tests/test_tracked_stats_input.py
