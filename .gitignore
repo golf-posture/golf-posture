@@ -57,3 +57,17 @@ pipeline/diagnose_clustering.py
 pipeline/export_tracked_stats_input.py
 tests/test_diagnose_clustering.py
 tests/test_tracked_stats_input.py
+# Not needed to run an evaluation (training / eval / offline experiments)
+event_detection/data/
+event_detection/scripts/
+event_detection/train.py
+event_detection/eval.py
+event_detection/util.py
+event_detection/test_video.py
+event_detection/test_video_colab.py
+event_detection/test_youtube_colab.py
+golf_yb_yolopose/
+pose_analysis/
+pipeline/diagnose_reliability_stats.py
+data/pro_feature_raw.csv
+data/pro_feature_stats_reliability.csv
