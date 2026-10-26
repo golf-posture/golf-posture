@@ -228,6 +228,28 @@ pixi run python -m pipeline.run_analysis \
 
 `--mock-events`를 사용하면 실제 SwingNet 검출 결과가 아니라 균등 분할된 테스트 이벤트를 사용합니다. 이 경우 결과 JSON에 `"mock_events": true`가 기록됩니다.
 
+### 추출 방식 (`--extraction`)
+
+| 값 | 동작 |
+|---|---|
+| `tracked` (기본) | 스윙 구간을 영상 모드로 순차 추적하고 가려진 팔 값을 복구한 뒤 프로 기준과 같은 QC를 적용. 팔이 의심스러우면 "unavailable"로 처리 |
+| `static` | 이벤트 프레임을 각각 독립적으로 추론하는 기존 방식 |
+
+- `tracked`는 `--pose-backend mediapipe`에서만 동작하며, `yolopose`/`auto`/`hybrid`는 자동으로 `static`으로 처리됩니다(결과 JSON의 `extraction`, `extraction_note`에 기록).
+- 기존 방식으로 재현하려면 `--extraction static`을 지정하세요.
+
+### 프로 기준 통계 (`--reference`)
+
+추출 방식과 별개로 선택합니다. 결과 JSON의 `reference`에 기록됩니다.
+
+| 값 | 기준 통계 위치 |
+|---|---|
+| `legacy` (기본) | `data/` (기존 기준, 등급 기준 유지) |
+| `tracked` (선택) | `data/tracked/` (추적 재추출 + QC 정제. 표준편차가 좁아져 등급이 더 엄격해짐) |
+
+- `--reliability-stats` 등 경로 옵션을 직접 주면 그 경로가 우선합니다.
+- `--reference tracked`인데 `data/tracked/`에 통계가 없으면 결과 JSON의 `errors`에 안내가 남습니다. 생성 방법은 `documents/feedback_v2_work_log_2026-10-13.md`의 "tracked 기준 통계 생성"을 참고하세요.
+
 ## 출력 결과
 
 `--output`을 생략하면 입력 영상 이름을 기준으로 `outputs/<video_stem>/` 폴더가 생성됩니다.
@@ -646,6 +668,13 @@ JSON 결과에서 피드백 리포트만 다시 생성:
 pixi run python -m pipeline.generate_feedback_report \
   --analysis-json outputs\sample\sample_result.json \
   --output-dir outputs\sample
+```
+
+단위 테스트 (`compute_reliability_stats.py`/`compute_dynamics_stats.py`/`run_analysis.py`의 통계·등급 계산 순수 함수):
+
+```bash
+pixi run pytest tests/ -v
+pixi run pytest tests/ --cov=pipeline --cov-report=term-missing
 ```
 
 ## 개발 범위와 주의점

@@ -10,6 +10,7 @@ from typing import Any
 
 import cv2
 import numpy as np
+from scipy.stats import chi2
 
 
 EVENT_NAMES = [
@@ -81,8 +82,44 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--reliability-stats",
-        default="data/pro_feature_stats_reliability.json",
-        help="Optional reliability stats JSON. Used when the file exists.",
+        help=(
+            "Optional reliability stats JSON. Used when the file exists. Defaults to "
+            "data/pro_feature_stats_reliability.json (or data/tracked/... with --reference tracked)."
+        ),
+    )
+    parser.add_argument(
+        "--covariance-stats",
+        help=(
+            "Optional per-event covariance/precision JSON for the Mahalanobis combined score. Defaults to "
+            "data/pro_feature_covariance.json (or data/tracked/... with --reference tracked)."
+        ),
+    )
+    parser.add_argument(
+        "--dynamics-stats",
+        help=(
+            "Optional event-to-event delta (swing dynamics) stats JSON. Defaults to "
+            "data/pro_dynamics_stats.json (or data/tracked/... with --reference tracked)."
+        ),
+    )
+    parser.add_argument(
+        "--extraction",
+        choices=["tracked", "static"],
+        default="tracked",
+        help=(
+            "How user features are extracted. tracked: track the swing sequentially (video mode), recover "
+            "hidden-arm values and drop QC-flagged elbows as unavailable (mediapipe backend only). "
+            "static: legacy isolated per-frame extraction. Independent of --reference."
+        ),
+    )
+    parser.add_argument(
+        "--reference",
+        choices=["legacy", "tracked"],
+        default="legacy",
+        help=(
+            "Which pro reference statistics to grade against. legacy: data/*.json (the original reference). "
+            "tracked: data/tracked/*.json, rebuilt from QC-cleaned tracked pro data (narrower spreads, "
+            "so grading is stricter). Independent of --extraction."
+        ),
     )
     parser.add_argument(
         "--reference-skeletons",
@@ -201,6 +238,32 @@ def load_optional_stats(path: Path) -> dict[str, Any] | None:
     if not path.exists():
         return None
     return load_stats(path)
+
+
+TRACKED_STATS_DIR = "data/tracked"
+LEGACY_STATS_DIR = "data"
+
+
+def effective_extraction(requested: str, pose_backend: str) -> tuple[str, str | None]:
+    """Tracked extraction runs MediaPipe over the swing; other backends keep the per-frame (static) path."""
+    if requested == "tracked" and pose_backend != "mediapipe":
+        return "static", (
+            f"tracked extraction supports the mediapipe backend only; "
+            f"used static per-frame extraction for --pose-backend {pose_backend}"
+        )
+    return requested, None
+
+
+def resolve_stats_path(value: str | None, reference: str, filename: str) -> Path:
+    """Explicit path wins; otherwise the chosen reference set ('legacy' or 'tracked') decides the directory.
+
+    The reference set is independent of the extraction mode: how user features are extracted does not
+    change which pro statistics they are graded against.
+    """
+    if value:
+        return Path(value)
+    directory = TRACKED_STATS_DIR if reference == "tracked" else LEGACY_STATS_DIR
+    return Path(directory) / filename
 
 
 def video_frame_count(video_path: Path) -> int:
@@ -360,12 +423,13 @@ def detect_swingnet_events(
 class MediaPipePoseBackend:
     name = "mediapipe"
 
-    def __init__(self):
+    def __init__(self, model_complexity: int = 1, min_visibility: float = 0.5):
         import mediapipe as mp
 
+        self._min_visibility = min_visibility
         self._pose = mp.solutions.pose.Pose(
             static_image_mode=True,
-            model_complexity=1,
+            model_complexity=model_complexity,
             min_detection_confidence=0.5,
         )
 
@@ -380,7 +444,7 @@ class MediaPipePoseBackend:
         landmarks = {}
         for name, idx in LANDMARK_NAMES.items():
             point = raw[idx]
-            if point.visibility < 0.5:
+            if point.visibility < self._min_visibility:
                 landmarks[name] = None
             else:
                 landmarks[name] = (
@@ -561,6 +625,147 @@ def feedback_for_event(
                 )
                 if reliability == "low" and item["grade"] == "Needs Improvement":
                     item["message"] += " Low reliability: treat this as a reference signal, not a strong correction."
+        feedback[feature_name] = item
+    return feedback
+
+
+COMBINED_EXCELLENT_PERCENTILE = 68.27  # ~1 sigma two-tailed coverage, matches grade_from_z |z|<=1
+COMBINED_GOOD_PERCENTILE = 95.45  # ~2 sigma two-tailed coverage, matches grade_from_z |z|<=2
+
+
+def grade_from_combined_percentile(deviation_percentile: float | None) -> str:
+    if deviation_percentile is None:
+        return "unavailable"
+    if deviation_percentile <= COMBINED_EXCELLENT_PERCENTILE:
+        return "Excellent"
+    if deviation_percentile <= COMBINED_GOOD_PERCENTILE:
+        return "Good"
+    return "Needs Improvement"
+
+
+def mahalanobis_combined_score(
+    features: dict[str, float | None],
+    event_idx: int,
+    covariance_stats: dict[str, Any] | None,
+) -> dict[str, Any]:
+    item: dict[str, Any] = {
+        "distance": None,
+        # Higher = further into the pro population's deviant tail (worse), NOT "better than X% of pros".
+        "deviation_percentile": None,
+        "grade": "unavailable",
+        "shrinkage_alpha": None,
+        "message": "",
+    }
+    event_stats = (covariance_stats or {}).get("events", {}).get(str(event_idx))
+    if event_stats is None or event_stats.get("precision") is None:
+        item["message"] = "Combined covariance stats not available for this event."
+        return item
+
+    feature_order = event_stats["feature_order"]
+    mean_vector = event_stats["mean"]
+    diffs = []
+    for feature_name, mean in zip(feature_order, mean_vector):
+        value = features.get(feature_name)
+        if value is None:
+            item["message"] = f"Feature '{feature_name}' unavailable, cannot compute combined score."
+            return item
+        if feature_name in CIRCULAR_FEATURES:
+            diffs.append(circular_delta(value, mean))
+        else:
+            diffs.append(value - mean)
+
+    diff_vector = np.asarray(diffs, dtype=float)
+    precision = np.asarray(event_stats["precision"], dtype=float)
+    squared_distance = max(float(diff_vector @ precision @ diff_vector), 0.0)
+    distance = float(np.sqrt(squared_distance))
+    deviation_percentile = float(chi2.cdf(squared_distance, df=len(feature_order))) * 100.0
+
+    item["distance"] = distance
+    item["deviation_percentile"] = deviation_percentile
+    item["shrinkage_alpha"] = event_stats.get("shrinkage_alpha")
+    item["grade"] = grade_from_combined_percentile(deviation_percentile)
+    item["message"] = (
+        f"combined: {item['grade']} (mahalanobis={distance:.2f}, "
+        f"deviation_percentile={deviation_percentile:.1f} [higher=more unusual], "
+        f"features={feature_order})"
+    )
+    return item
+
+
+def dynamics_pair_label(start_idx: int, end_idx: int) -> str:
+    return f"{EVENT_NAMES[start_idx]}->{EVENT_NAMES[end_idx]}"
+
+
+def dynamics_feedback_for_pair(
+    start_features: dict[str, float | None],
+    end_features: dict[str, float | None],
+    start_idx: int,
+    end_idx: int,
+    dynamics_stats: dict[str, Any] | None,
+) -> dict[str, Any]:
+    label = dynamics_pair_label(start_idx, end_idx)
+    pair_features = (dynamics_stats or {}).get("pairs", {}).get(label, {}).get("features", {})
+
+    feedback: dict[str, Any] = {}
+    for feature_name in REQUIRED_FEATURES:
+        item: dict[str, Any] = {
+            "delta": None,
+            "pro_median_delta": None,
+            "robust_z": None,
+            "grade": "unavailable",
+            "reliability": "unknown",
+            "feedback_strength": "normal",
+            "message": "",
+        }
+        start_value = start_features.get(feature_name)
+        end_value = end_features.get(feature_name)
+        stat = pair_features.get(feature_name)
+
+        if start_value is None or end_value is None:
+            item["message"] = f"{label} {feature_name}: one of the two event values is unavailable."
+            feedback[feature_name] = item
+            continue
+        if stat is None or stat.get("median") is None:
+            item["message"] = f"{label} {feature_name}: not enough pro samples for this event pair."
+            feedback[feature_name] = item
+            continue
+
+        reliability = stat.get("reliability", "unknown")
+        feedback_strength = stat.get("feedback_strength", "normal")
+        item["reliability"] = reliability
+        item["feedback_strength"] = feedback_strength
+
+        if feature_name in CIRCULAR_FEATURES:
+            delta = circular_delta(end_value, start_value)
+        else:
+            delta = end_value - start_value
+        median_delta = stat["median"]
+        scaled_mad = stat["scaled_mad"]
+        item["delta"] = delta
+        item["pro_median_delta"] = median_delta
+
+        if scaled_mad is None or scaled_mad <= 0:
+            item["message"] = f"{label} {feature_name}: pro dynamics scaled MAD is missing or zero."
+            feedback[feature_name] = item
+            continue
+
+        if feature_name in CIRCULAR_FEATURES:
+            z_diff = circular_delta(delta, median_delta)
+        else:
+            z_diff = delta - median_delta
+        robust_z = float(z_diff / scaled_mad)
+        item["robust_z"] = robust_z
+        item["grade"] = grade_from_z(robust_z)
+        item["message"] = (
+            f"{label} {feature_name}: {item['grade']} "
+            f"(delta={delta:.2f}, pro_median_delta={median_delta:.2f}, robust_z={robust_z:.2f}, "
+            f"reliability={reliability})"
+        )
+        if reliability == "low" and item["grade"] == "Needs Improvement":
+            item["message"] += (
+                " Low reliability: this event-pair/feature has high individual variation "
+                "(sometimes genuinely bimodal), treat as a reference signal, not a strong correction."
+            )
         feedback[feature_name] = item
     return feedback
 
@@ -869,8 +1074,13 @@ def write_outputs(result: dict[str, Any], json_path: Path, txt_path: Path) -> No
 
 def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     video_path = Path(args.video)
+    extraction, extraction_note = effective_extraction(args.extraction, args.pose_backend)
     stats_path = Path(args.pro_stats)
-    reliability_stats_path = Path(args.reliability_stats)
+    reliability_stats_path = resolve_stats_path(
+        args.reliability_stats, args.reference, "pro_feature_stats_reliability.json"
+    )
+    covariance_stats_path = resolve_stats_path(args.covariance_stats, args.reference, "pro_feature_covariance.json")
+    dynamics_stats_path = resolve_stats_path(args.dynamics_stats, args.reference, "pro_dynamics_stats.json")
     reference_skeletons_path = Path(args.reference_skeletons)
     checkpoint_path = (
         Path(args.checkpoint)
@@ -883,9 +1093,14 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         "mock_events": bool(args.mock_events),
         "handedness": args.handedness,
         "pose_backend": args.pose_backend,
+        "extraction": extraction,
+        "extraction_note": extraction_note,
+        "reference": args.reference,
         "checkpoint_path": None if args.mock_events else str(checkpoint_path),
         "pro_stats_path": str(stats_path),
         "reliability_stats_path": str(reliability_stats_path),
+        "covariance_stats_path": str(covariance_stats_path),
+        "dynamics_stats_path": str(dynamics_stats_path),
         "reference_skeletons_path": str(reference_skeletons_path),
         "reference_skeletons_available": False,
         "output_mode": None,
@@ -912,6 +1127,8 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         result["errors"].append(str(exc))
         return result, 1
     reliability_stats = load_optional_stats(reliability_stats_path)
+    covariance_stats = load_optional_stats(covariance_stats_path)
+    dynamics_stats = load_optional_stats(dynamics_stats_path)
     reference_skeletons = load_reference_skeletons(reference_skeletons_path)
     if reference_skeletons is None:
         result["errors"].append(
@@ -930,13 +1147,31 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         result["errors"].append(str(exc))
         return result, 1
 
+    if args.reference == "tracked" and not reliability_stats_path.exists():
+        result["errors"].append(
+            f"Tracked reference stats not found: {reliability_stats_path}. Build them with "
+            "documents/feedback_v2_work_log_2026-10-13.md (section 'tracked 기준 통계 생성'), "
+            "or run with --reference legacy."
+        )
+
+    tracked_events = None
+    if extraction == "tracked":
+        try:
+            from pipeline.user_tracking import analyze_user_video
+
+            tracked_events = analyze_user_video(video_path, [int(f) for f in event_frames], args.handedness)
+        except Exception as exc:
+            result["errors"].append(f"Tracked pose extraction failed: {type(exc).__name__}: {exc}")
+            return result, 1
+
     attempt_media = args.pose_backend in {"mediapipe", "auto", "hybrid"}
     attempt_yolo = args.pose_backend in {"yolopose", "auto", "hybrid"}
     media_backend = None
     yolo_backend = None
     if attempt_media:
         result["pose_backend_comparison"]["mediapipe"]["attempted"] = True
-        media_backend = init_backend("mediapipe", result["pose_backend_comparison"]["mediapipe"]["notes"])
+        if tracked_events is None:
+            media_backend = init_backend("mediapipe", result["pose_backend_comparison"]["mediapipe"]["notes"])
     if attempt_yolo:
         result["pose_backend_comparison"]["yolopose"]["attempted"] = True
         yolo_backend = init_backend("yolopose", result["pose_backend_comparison"]["yolopose"]["notes"])
@@ -971,6 +1206,9 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
                         stats,
                         reliability_stats,
                     ),
+                    "combined_score": mahalanobis_combined_score(
+                        {name: None for name in REQUIRED_FEATURES}, event_idx, covariance_stats
+                    ),
                     "pose_candidates": {},
                     "selected_landmarks": None,
                     "notes": ["Could not read event frame."],
@@ -982,7 +1220,10 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
 
             cv2.imwrite(str(frame_dir / safe_frame_name(event_idx, event_name)), frame)
 
-            media_result = analyze_pose_backend(media_backend, frame, args.handedness) if media_backend else None
+            if tracked_events is not None:
+                media_result = tracked_events[event_idx]
+            else:
+                media_result = analyze_pose_backend(media_backend, frame, args.handedness) if media_backend else None
             yolo_result = analyze_pose_backend(yolo_backend, frame, args.handedness) if yolo_backend else None
 
             if media_result and media_result["pose_detected"]:
@@ -1008,6 +1249,9 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
                 "selected_landmarks": selected.get("landmarks"),
                 "features": selected["features"],
                 "feedback": feedback_for_event(event_idx, selected["features"], stats, reliability_stats),
+                "combined_score": mahalanobis_combined_score(
+                    selected["features"], event_idx, covariance_stats
+                ),
                 "pose_candidates": {
                     "mediapipe": media_result,
                     "yolopose": yolo_result,
@@ -1045,6 +1289,20 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
 
     result["pose_backend_comparison"]["selected_backend"] = selected_backend
     result["pose_backend_comparison"]["selection_reason"] = reason
+
+    dynamics: dict[str, Any] = {}
+    for start_idx in range(len(EVENT_NAMES) - 1):
+        end_idx = start_idx + 1
+        start_event = result["events"].get(EVENT_NAMES[start_idx], {})
+        end_event = result["events"].get(EVENT_NAMES[end_idx], {})
+        start_features = start_event.get("features", {name: None for name in REQUIRED_FEATURES})
+        end_features = end_event.get("features", {name: None for name in REQUIRED_FEATURES})
+        label = dynamics_pair_label(start_idx, end_idx)
+        dynamics[label] = dynamics_feedback_for_pair(
+            start_features, end_features, start_idx, end_idx, dynamics_stats
+        )
+    result["dynamics"] = dynamics
+
     return result, 0
 
 
