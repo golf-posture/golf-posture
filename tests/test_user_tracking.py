@@ -1,0 +1,98 @@
+from __future__ import annotations
+
+import pytest
+
+from pipeline.user_tracking import build_user_events, tracking_window
+
+FRAME_SIZE = (100, 100)
+LANDMARKS = [
+    "NOSE", "LEFT_SHOULDER", "RIGHT_SHOULDER", "LEFT_ELBOW", "RIGHT_ELBOW", "LEFT_WRIST",
+    "RIGHT_WRIST", "LEFT_HIP", "RIGHT_HIP", "LEFT_KNEE", "RIGHT_KNEE", "LEFT_ANKLE", "RIGHT_ANKLE",
+]
+
+
+def _joint(px, py, vis=0.9, wx=0.0, wy=0.0, wz=0.0):
+    return (px, py, vis, wx, wy, wz)
+
+
+def _frame(vis: float = 0.9):
+    """Right (trail) arm: 90 degree elbow in 2D and 3D. Left arm straight. Plausible bone lengths."""
+    frame = {name: _joint(50, 50, vis) for name in LANDMARKS}
+    frame.update({
+        "RIGHT_SHOULDER": _joint(30, 20, vis, 0.1, 0.0, 0.0),
+        "RIGHT_ELBOW": _joint(30, 40, vis, 0.1, 0.25, 0.0),
+        "RIGHT_WRIST": _joint(50, 40, vis, 0.1 + 0.22, 0.25, 0.0),
+        "LEFT_SHOULDER": _joint(70, 20, vis, -0.1, 0.0, 0.0),
+        "LEFT_ELBOW": _joint(70, 40, vis, -0.1, 0.25, 0.0),
+        "LEFT_WRIST": _joint(70, 60, vis, -0.1, 0.5, 0.0),
+        "LEFT_HIP": _joint(60, 70, vis),
+        "RIGHT_HIP": _joint(40, 70, vis),
+    })
+    return frame
+
+
+def _events(frames, indices):
+    return build_user_events(frames, indices, FRAME_SIZE, "right")
+
+
+class TestTrackingWindow:
+    def test_starts_before_first_event_and_ends_after_last(self):
+        start, last = tracking_window([40, 60, 90], total_frames=500)
+
+        assert start == 30
+        assert last == 98
+
+    def test_clamped_to_video_bounds(self):
+        start, last = tracking_window([3, 60, 495], total_frames=500)
+
+        assert start == 0
+        assert last == 499
+
+
+class TestBuildUserEvents:
+    def test_returns_one_entry_per_event_with_features_and_landmarks(self):
+        events = _events([_frame(), _frame()], [0, 1])
+
+        assert len(events) == 2
+        first = events[0]
+        assert first["pose_detected"] is True
+        assert first["features"]["trail_elbow_angle"] == pytest.approx(90.0)
+        assert first["features"]["lead_elbow_angle"] == pytest.approx(180.0)
+        assert set(first["landmarks"]) == set(LANDMARKS)
+        assert first["computed_feature_count"] == 5
+
+    def test_landmarks_below_half_visibility_are_dropped_but_elbow_uses_looser_threshold(self):
+        event = _events([_frame(vis=0.45)], [0])[0]
+
+        assert event["landmarks"]["RIGHT_ELBOW"] is None
+        assert event["features"]["trail_elbow_angle"] == pytest.approx(90.0)
+        assert event["features"]["shoulder_tilt"] is None
+
+    def test_qc_flagged_elbow_becomes_unavailable(self):
+        frame = _frame()
+        frame["RIGHT_WRIST"] = _joint(50, 40, 0.9, 0.1 + 0.9, 0.25, 0.0)  # forearm 0.9m vs upper arm 0.25m
+
+        event = _events([frame], [0])[0]
+
+        assert event["features"]["trail_elbow_angle"] is None
+        assert event["qc"]["trail"]["bone"] is True
+        assert event["features"]["lead_elbow_angle"] == pytest.approx(180.0)
+
+    def test_value_recovered_from_neighbors_is_discarded_by_qc_like_the_pro_reference(self):
+        # The event frame itself has no pose, so the neighbour-derived angle is the least trustworthy kind:
+        # QC (frame/low_vis flags) drops it, exactly as it did when the pro reference statistics were built.
+        event = _events([_frame(), None, _frame()], [1])[0]
+
+        assert event["pose_detected"] is False
+        assert event["landmarks"] is None
+        assert event["qc"]["trail_elbow_source"] == "window"
+        assert event["qc"]["trail"]["frame"] is True
+        assert event["features"]["trail_elbow_angle"] is None
+        assert event["features"]["shoulder_tilt"] is None
+
+    def test_event_past_end_is_fully_unavailable(self):
+        event = _events([_frame()], [9])[0]
+
+        assert event["pose_detected"] is False
+        assert all(value is None for value in event["features"].values())
+        assert event["computed_feature_count"] == 0
