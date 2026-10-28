@@ -1,0 +1,19 @@
+{
+  "tempo_ratio": {
+    "mean": 3.903260958992017,
+    "std": 1.0607882110694524,
+    "median": 3.6833333333333336,
+    "iqr": 1.1452346743295019,
+    "n": 342,
+    "total": 342,
+    "detection_rate": 1.0,
+    "reliability": "low",
+    "feedback_strength": "reference",
+    "reliability_reason": "high dispersion or low coverage"
+  },
+  "metadata": {
+    "source": "data/pro_feature_raw.csv",
+    "definition": "tempo_ratio = (Top_frame - Address_frame) / (Impact_frame - Top_frame)",
+    "total_videos": 342
+  }
+}

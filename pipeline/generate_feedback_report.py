@@ -8,6 +8,11 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+try:  # package run (python -m pipeline...) or flat run
+    from pipeline.user_feedback import build_user_feedback, render_user_feedback_text
+except ImportError:  # pragma: no cover
+    from user_feedback import build_user_feedback, render_user_feedback_text
+
 
 EVENT_NAMES = [
     "Address",
@@ -45,6 +50,10 @@ FEATURE_KO = {
     "shoulder_tilt": "어깨 기울기",
     "hip_tilt": "골반 기울기",
     "spine_tilt": "척추 기울기",
+}
+
+SEQUENCE_FEATURE_KO = {
+    "tempo_ratio": "템포 비율 (백스윙:다운스윙)",
 }
 
 GRADE_PRIORITY = {"Needs Improvement": 3, "Good": 2, "Excellent": 0, "unavailable": 0}
@@ -174,10 +183,45 @@ def select_reference_items(items: list[dict[str, Any]], limit: int = 3) -> list[
     return candidates[:limit]
 
 
+GRADE_KO = {"Excellent": "양호", "Good": "주의", "Needs Improvement": "개선 필요", "unavailable": "평가 불가"}
+SHOW_Z_IN_TEXT = False  # z-scores stay in the JSON/CSV; the user-facing text uses "N of 100 pros" wording
+
+
+def _normal_cdf(z: float) -> float:
+    return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
+
+
+def pros_phrase_two_sided(z_score: Any) -> str:
+    """Angle features / tempo: how many of 100 pros deviate at least this much
+    from the pro mean (normal approximation of the z-score)."""
+    if not isinstance(z_score, (int, float)) or not math.isfinite(z_score):
+        return ""
+    share = 2.0 * (1.0 - _normal_cdf(abs(z_score))) * 100.0
+    if share < 1.0:
+        return " 프로 100명 중 1명 미만만 이 정도로 벗어납니다."
+    if share < 20.0:
+        return f" 프로 100명 중 약 {share:.0f}명만 이 정도로 벗어납니다."
+    return f" 프로 100명 중 약 {share:.0f}명도 이 정도 차이는 보이므로 프로 범위 안입니다."
+
+
+def pros_phrase_tail(tail_pct: Any, tail_side: Any) -> str:
+    if not isinstance(tail_pct, (int, float)) or tail_side not in ("high", "low"):
+        return ""
+    side = "이상" if tail_side == "high" else "이하"
+    if tail_pct < 1.0:
+        return f"프로 100명 중 1명 미만만 이 값 {side}입니다"
+    if tail_pct < 20.0:
+        return f"프로 100명 중 약 {tail_pct:.0f}명만 이 값 {side}입니다"
+    return f"프로 100명 중 약 {tail_pct:.0f}명이 이 값 {side}입니다"
+
+
 def sentence_for_core(item: dict[str, Any]) -> str:
     event_ko = EVENT_KO.get(item["event_name"], item["event_name"])
     feature_ko = FEATURE_KO.get(item["feature_name"], item["feature_name"])
-    z_text = f" z-score는 {item['z_score']:.2f}입니다." if isinstance(item["z_score"], (int, float)) else ""
+    if SHOW_Z_IN_TEXT and isinstance(item["z_score"], (int, float)):
+        z_text = f" z-score는 {item['z_score']:.2f}입니다."
+    else:
+        z_text = pros_phrase_two_sided(item["z_score"])
 
     if item["grade"] == "Needs Improvement":
         sentence = f"{event_ko} 단계에서 {feature_ko}가 프로 기준과 크게 차이가 있습니다."
@@ -202,6 +246,103 @@ def sentence_for_reference(item: dict[str, Any]) -> str:
     )
 
 
+def sentence_for_sequence_feature(feature_name: str, item: dict[str, Any]) -> str:
+    label = SEQUENCE_FEATURE_KO.get(feature_name, feature_name)
+    grade = item.get("grade") or "unavailable"
+    value = item.get("value")
+    pro_mean = item.get("pro_mean")
+    reliability = item.get("reliability") or "unknown"
+
+    if value is None:
+        diag = item.get("diagnostics") or {}
+        problem = diag.get("problem")
+        if problem:
+            return f"{label}: 평가할 수 없습니다 ({problem})"
+        return f"{label}: 계산에 필요한 구간 정보가 부족하여 평가할 수 없습니다."
+    if pro_mean is None:
+        return f"{label}: 값은 {value:.2f}이지만, 비교할 프로 기준 데이터가 없습니다."
+
+    sentence = f"{label}: {value:.2f} (프로 평균 {pro_mean:.2f}) — {GRADE_KO.get(grade, grade)}."
+    sentence += pros_phrase_two_sided(item.get("z_score"))
+    if reliability == "low":
+        sentence += " 프로 선수 간 개인차가 커서 참고용 지표로만 확인하는 것이 좋습니다."
+    return sentence
+
+
+def sentence_for_motion_metric(item: dict[str, Any]) -> str:
+    label = item.get("label_ko") or "동작 지표"
+    value = item.get("value")
+    value_text = item.get("value_text")
+    median_text = item.get("pro_median_text")
+    z = item.get("robust_z")
+    penalty = item.get("penalty_z")
+    level = item.get("level_ko") or "평가 불가"
+
+    if value is None:
+        return f"{label}: 필요한 관절이 검출되지 않아 평가할 수 없습니다."
+    if median_text is None or z is None:
+        return f"{label}: {value_text} (비교할 프로 기준 데이터가 없습니다)."
+
+    range_text = item.get("pro_range_text")
+    head = f"{label}: {value_text}"
+    if range_text:
+        head += f" (프로 대부분 {range_text}, 중앙값 {median_text})"
+    else:
+        head += f" (프로 중앙값 {median_text})"
+    where = pros_phrase_tail(item.get("tail_pct"), item.get("tail_side"))
+    z_text = f" robust_z는 {z:.2f}입니다." if SHOW_Z_IN_TEXT else ""
+    reliability = item.get("reliability")
+
+    if penalty is not None and penalty > 1.0:
+        if reliability in ("high", "medium"):
+            where_part = f" {where}." if where else ""
+            return f"{head} — {level}.{where_part} {item.get('advice') or '프로 기준과 차이가 있습니다.'}{z_text}"
+        return (
+            f"{head} — 참고. {where + '. ' if where else ''}"
+            f"프로 선수 간 개인차가 큰 지표이므로 참고용으로만 보는 것이 적절합니다.{z_text}"
+        )
+    if abs(z) > 1.0:
+        return f"{head} — {level}. 프로 기준과 차이가 있으나 문제가 되는 방향은 아닙니다.{z_text}"
+    where_part = f" {where}." if where else ""
+    return f"{head} — {level}.{where_part} 프로 범위 안에 있습니다.{z_text}"
+
+
+def build_motion_metric_lines(motion_metrics: dict[str, Any]) -> list[str]:
+    lines = ["", "[스윙 동작 지표]"]
+    if not motion_metrics:
+        lines.append("- 이 분석 결과에는 스윙 동작 지표가 포함되어 있지 않습니다.")
+        return lines
+
+    def order(item: dict[str, Any]) -> float:
+        return -(item.get("penalty_z") or 0.0)
+
+    items = sorted(motion_metrics.values(), key=order)
+    reliable = [i for i in items if i.get("reliability") in ("high", "medium")]
+    reference = [i for i in items if i.get("reliability") not in ("high", "medium")]
+
+    graded = [i for i in items if i.get("grade") in GRADE_KO and i.get("grade") != "unavailable"]
+    if graded:
+        counts = Counter(i["grade"] for i in graded)
+        lines.append(
+            f"동작 지표 {len(graded)}개 중 양호 {counts.get('Excellent', 0)}개, 주의 {counts.get('Good', 0)}개, "
+            f"개선 필요 {counts.get('Needs Improvement', 0)}개입니다. "
+            "(비교 기준: 프로 342명의 분포)"
+        )
+        lines.append("")
+    lines.append("신뢰도가 평균 이상인 부분")
+    if reliable:
+        lines.extend(f"- {sentence_for_motion_metric(i)}" for i in reliable)
+    else:
+        lines.append("- 해당하는 지표가 없습니다.")
+    lines.append("")
+    lines.append("신뢰도가 낮은 부분 (참고용)")
+    if reference:
+        lines.extend(f"- {sentence_for_motion_metric(i)}" for i in reference)
+    else:
+        lines.append("- 해당하는 지표가 없습니다.")
+    lines.append("")
+    lines.append("※ 정면에서 촬영한 영상 기준의 2D 추정치이며, 회전각은 어깨·골반 폭의 변화로 계산한 근사값입니다.")
+    return lines
 def iter_combined_score_items(data: dict[str, Any]) -> list[dict[str, Any]]:
     items = []
     for event_name, event in ordered_event_items(data.get("events", {})):
@@ -376,6 +517,15 @@ def build_korean_feedback(
     else:
         lines.append("- 참고용으로 분리할 low reliability 항목은 없습니다.")
 
+    sequence_features = data.get("sequence_features") or {}
+    lines.extend(["", "[전체 스윙 리듬]"])
+    if sequence_features:
+        for feature_name, item in sequence_features.items():
+            lines.append(f"- {sentence_for_sequence_feature(feature_name, item)}")
+    else:
+        lines.append("- 이 분석 결과에는 스윙 전체 리듬 지표가 포함되어 있지 않습니다.")
+
+    lines.extend(build_motion_metric_lines(data.get("motion_metrics") or {}))
     combined_all = iter_combined_score_items(data)
     combined_flagged = select_combined_score_items(combined_all)
     lines.extend(["", "[결합 스코어 참고 - 항목 조합 이상 탐지]"])
@@ -408,7 +558,8 @@ def build_korean_feedback(
             f"- JSON 상세 결과: {analysis_json}",
             f"- 기본 텍스트 요약: {data.get('text_summary_path')}",
             f"- 표 CSV: {table_csv}",
-            f"- 한국어 피드백: {feedback_ko}",
+            f"- 한국어 피드백(상세): {feedback_ko}",
+            f"- 일반 사용자용 피드백: {feedback_ko.with_name(feedback_ko.name.replace('feedback_ko', 'feedback_user'))}",
             f"- keyframe 이미지 폴더: {data.get('event_frame_dir')}",
             f"- skeleton 비교 이미지 폴더: {data.get('skeleton_comparison_dir')}",
         ]
@@ -421,10 +572,14 @@ def report_paths(output_dir: Path, filename_prefix: str | None = None) -> dict[s
         return {
             "table_csv": output_dir / f"{filename_prefix}_feedback_table.csv",
             "feedback_ko": output_dir / f"{filename_prefix}_feedback_ko.txt",
+            "feedback_user": output_dir / f"{filename_prefix}_feedback_user.txt",
+            "feedback_user_json": output_dir / f"{filename_prefix}_feedback_user.json",
         }
     return {
         "table_csv": output_dir / "feedback_table.csv",
         "feedback_ko": output_dir / "feedback_ko.txt",
+        "feedback_user": output_dir / "feedback_user.txt",
+        "feedback_user_json": output_dir / "feedback_user.json",
     }
 
 
@@ -450,6 +605,13 @@ def generate_feedback_report(
         paths["feedback_ko"],
     )
     paths["feedback_ko"].write_text(feedback_text, encoding="utf-8")
+
+    # General-user version (plain wording) + the same content as structured cards.
+    user_feedback = build_user_feedback(data)
+    paths["feedback_user"].write_text(render_user_feedback_text(user_feedback), encoding="utf-8")
+    paths["feedback_user_json"].write_text(
+        json.dumps(user_feedback, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     return paths
 
 
@@ -462,6 +624,7 @@ def main() -> int:
     )
     print(f"Feedback table written: {paths['table_csv']}")
     print(f"Korean feedback written: {paths['feedback_ko']}")
+    print(f"User-friendly feedback written: {paths['feedback_user']}")
     return 0
 
 
