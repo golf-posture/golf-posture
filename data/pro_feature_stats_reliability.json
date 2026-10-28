@@ -69,6 +69,20 @@
       "reliability": "high",
       "feedback_strength": "strong",
       "reliability_reason": "low dispersion and high detection rate"
+    },
+    "xfactor": {
+      "mean": 7.041640641197526,
+      "std": 5.2624455276483015,
+      "median": 6.608220195213647,
+      "iqr": 4.426560558240155,
+      "n": 342,
+      "total": 342,
+      "detection_rate": 1.0,
+      "missing_count": 0,
+      "stat_type": "linear_degrees",
+      "reliability": "high",
+      "feedback_strength": "strong",
+      "reliability_reason": "low dispersion and high detection rate"
     }
   },
   "1": {
@@ -133,6 +147,20 @@
       "std": 4.893357001751972,
       "median": 7.379753769656231,
       "iqr": 4.686196053673779,
+      "n": 338,
+      "total": 342,
+      "detection_rate": 0.9883040935672515,
+      "missing_count": 4,
+      "stat_type": "linear_degrees",
+      "reliability": "high",
+      "feedback_strength": "strong",
+      "reliability_reason": "low dispersion and high detection rate"
+    },
+    "xfactor": {
+      "mean": -12.77517591159392,
+      "std": 6.727263305536181,
+      "median": -12.851901343811534,
+      "iqr": 7.704731594229948,
       "n": 338,
       "total": 342,
       "detection_rate": 0.9883040935672515,
@@ -213,6 +241,20 @@
       "reliability": "high",
       "feedback_strength": "strong",
       "reliability_reason": "low dispersion and high detection rate"
+    },
+    "xfactor": {
+      "mean": -19.376075386981263,
+      "std": 22.41087361623452,
+      "median": -15.984423749839266,
+      "iqr": 17.729687360492015,
+      "n": 336,
+      "total": 342,
+      "detection_rate": 0.9824561403508771,
+      "missing_count": 6,
+      "stat_type": "linear_degrees",
+      "reliability": "low",
+      "feedback_strength": "reference",
+      "reliability_reason": "high dispersion or low detection rate"
     }
   },
   "3": {
@@ -285,6 +327,20 @@
       "reliability": "high",
       "feedback_strength": "strong",
       "reliability_reason": "low dispersion and high detection rate"
+    },
+    "xfactor": {
+      "mean": -7.69694100317715,
+      "std": 22.20546619929837,
+      "median": -4.15636237581171,
+      "iqr": 11.650381989319442,
+      "n": 341,
+      "total": 342,
+      "detection_rate": 0.9970760233918129,
+      "missing_count": 1,
+      "stat_type": "linear_degrees",
+      "reliability": "low",
+      "feedback_strength": "reference",
+      "reliability_reason": "high dispersion or low detection rate"
     }
   },
   "4": {
@@ -349,6 +405,20 @@
       "std": 5.009289239690949,
       "median": 8.220320965251368,
       "iqr": 5.41980880994374,
+      "n": 342,
+      "total": 342,
+      "detection_rate": 1.0,
+      "missing_count": 0,
+      "stat_type": "linear_degrees",
+      "reliability": "high",
+      "feedback_strength": "strong",
+      "reliability_reason": "low dispersion and high detection rate"
+    },
+    "xfactor": {
+      "mean": -4.809221569151544,
+      "std": 8.948422304777077,
+      "median": -4.478737602518194,
+      "iqr": 12.473166947059099,
       "n": 342,
       "total": 342,
       "detection_rate": 1.0,
@@ -429,6 +499,20 @@
       "reliability": "high",
       "feedback_strength": "strong",
       "reliability_reason": "low dispersion and high detection rate"
+    },
+    "xfactor": {
+      "mean": 19.14200109982462,
+      "std": 20.61287967436947,
+      "median": 21.825091232468566,
+      "iqr": 10.301466063430752,
+      "n": 341,
+      "total": 342,
+      "detection_rate": 0.9970760233918129,
+      "missing_count": 1,
+      "stat_type": "linear_degrees",
+      "reliability": "low",
+      "feedback_strength": "reference",
+      "reliability_reason": "high dispersion or low detection rate"
     }
   },
   "6": {
@@ -501,6 +585,20 @@
       "reliability": "high",
       "feedback_strength": "strong",
       "reliability_reason": "low dispersion and high detection rate"
+    },
+    "xfactor": {
+      "mean": 31.38090689407877,
+      "std": 13.832293459491535,
+      "median": 32.49576864399404,
+      "iqr": 12.220853212994236,
+      "n": 342,
+      "total": 342,
+      "detection_rate": 1.0,
+      "missing_count": 0,
+      "stat_type": "linear_degrees",
+      "reliability": "medium",
+      "feedback_strength": "normal",
+      "reliability_reason": "moderate dispersion or detection rate"
     }
   },
   "7": {
@@ -573,6 +671,20 @@
       "reliability": "high",
       "feedback_strength": "strong",
       "reliability_reason": "low dispersion and high detection rate"
+    },
+    "xfactor": {
+      "mean": -9.225154392746905,
+      "std": 62.03116564246079,
+      "median": 9.19320072639536,
+      "iqr": 20.847551731017127,
+      "n": 340,
+      "total": 342,
+      "detection_rate": 0.9941520467836257,
+      "missing_count": 2,
+      "stat_type": "linear_degrees",
+      "reliability": "low",
+      "feedback_strength": "reference",
+      "reliability_reason": "high dispersion or low detection rate"
     }
   },
   "metadata": {
@@ -582,7 +694,8 @@
       "lead_elbow_angle",
       "shoulder_tilt",
       "hip_tilt",
-      "spine_tilt"
+      "spine_tilt",
+      "xfactor"
     ],
     "circular_features": [
       "hip_tilt",
