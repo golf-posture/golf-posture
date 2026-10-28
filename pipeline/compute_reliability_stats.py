@@ -10,11 +10,21 @@ from statistics import median
 from typing import Iterable
 
 import numpy as np
+from scipy.stats import chi2
 
 from pipeline.run_analysis import EVENT_NAMES, REQUIRED_FEATURES
 
 
 CIRCULAR_FEATURES = {"shoulder_tilt", "hip_tilt"}
+
+SHRINKAGE_TRIGGER_CONDITION = 50.0
+SHRINKAGE_TARGET_CONDITION = 30.0
+SHRINKAGE_MAX_ALPHA = 0.5
+SHRINKAGE_STEP = 0.05
+
+MIN_COMPLETE_CASE_SAMPLES = 10 * len(REQUIRED_FEATURES)
+OUTLIER_TRIM_ITERATIONS = 2
+OUTLIER_TRIM_CHI2_PERCENTILE = 97.5
 
 
 def parse_args() -> argparse.Namespace:
@@ -23,6 +33,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-json", default="data/pro_feature_stats_reliability.json")
     parser.add_argument("--summary", default="outputs/pro_feature_reliability_summary.txt")
     parser.add_argument("--stats-csv", default="data/pro_feature_stats_reliability.csv")
+    parser.add_argument("--covariance-json", default="data/pro_feature_covariance.json")
     return parser.parse_args()
 
 
@@ -154,6 +165,195 @@ def compute_stats(rows: list[dict]) -> dict:
     return stats
 
 
+def event_feature_vector(
+    row: dict, circular_centers: dict[str, float], feature_names: list[str]
+) -> list[float] | None:
+    values = []
+    for feature_name in feature_names:
+        value = as_float(row.get(feature_name))
+        if value is None:
+            return None
+        if feature_name in CIRCULAR_FEATURES:
+            value = circular_delta(value, circular_centers[feature_name])
+        values.append(value)
+    return values
+
+
+def shrink_covariance(cov: np.ndarray) -> tuple[np.ndarray, float, float, float]:
+    condition_before = float(np.linalg.cond(cov))
+    if condition_before <= SHRINKAGE_TRIGGER_CONDITION:
+        return cov, condition_before, condition_before, 0.0
+
+    dimension = cov.shape[0]
+    avg_variance = float(np.trace(cov) / dimension)
+    alpha = 0.0
+    shrunk = cov
+    condition_after = condition_before
+    while alpha < SHRINKAGE_MAX_ALPHA and condition_after > SHRINKAGE_TARGET_CONDITION:
+        alpha = min(alpha + SHRINKAGE_STEP, SHRINKAGE_MAX_ALPHA)
+        shrunk = (1.0 - alpha) * cov + alpha * avg_variance * np.eye(dimension)
+        condition_after = float(np.linalg.cond(shrunk))
+
+    return shrunk, condition_before, condition_after, float(alpha)
+
+
+def center_on_population_mean(
+    vector: list[float], feature_names: list[str], mean_vector: list[float]
+) -> list[float]:
+    return [
+        value if feature_name in CIRCULAR_FEATURES else value - mean
+        for feature_name, value, mean in zip(feature_names, vector, mean_vector)
+    ]
+
+
+def sample_covariance(centered_matrix: np.ndarray) -> np.ndarray:
+    n = centered_matrix.shape[0]
+    return (centered_matrix.T @ centered_matrix) / (n - 1)
+
+
+def trim_outliers(centered_matrix: np.ndarray) -> tuple[np.ndarray, int]:
+    dimension = centered_matrix.shape[1]
+    threshold = float(chi2.ppf(OUTLIER_TRIM_CHI2_PERCENTILE / 100.0, df=dimension))
+    kept = centered_matrix
+    n_removed = 0
+    for _ in range(OUTLIER_TRIM_ITERATIONS):
+        if kept.shape[0] < MIN_COMPLETE_CASE_SAMPLES:
+            break
+        cov = sample_covariance(kept)
+        try:
+            precision = np.linalg.inv(cov)
+        except np.linalg.LinAlgError:
+            break
+        squared_distance = np.einsum("ij,jk,ik->i", kept, precision, kept)
+        keep_mask = squared_distance <= threshold
+        if keep_mask.all():
+            break
+        n_removed += int((~keep_mask).sum())
+        kept = kept[keep_mask]
+    return kept, n_removed
+
+
+def compute_covariance_stats(rows: list[dict], stats: dict) -> dict:
+    grouped: dict[int, list[dict]] = defaultdict(list)
+    for row in rows:
+        grouped[int(row["event_index"])].append(row)
+
+    events: dict[str, dict] = {}
+    for event_index in range(len(EVENT_NAMES)):
+        circular_centers = {
+            feature_name: stats[str(event_index)][feature_name]["mean"]
+            for feature_name in CIRCULAR_FEATURES
+        }
+        mean_vector = [stats[str(event_index)][feature_name]["mean"] for feature_name in REQUIRED_FEATURES]
+
+        centered_rows = []
+        for row in grouped.get(event_index, []):
+            vector = event_feature_vector(row, circular_centers, REQUIRED_FEATURES)
+            if vector is not None:
+                centered_rows.append(center_on_population_mean(vector, REQUIRED_FEATURES, mean_vector))
+
+        n_complete = len(centered_rows)
+        if n_complete < MIN_COMPLETE_CASE_SAMPLES:
+            events[str(event_index)] = {
+                "feature_order": REQUIRED_FEATURES,
+                "mean": mean_vector,
+                "population_mean": mean_vector,
+                "n_complete": n_complete,
+                "n_outliers_removed": 0,
+                "covariance": None,
+                "precision": None,
+                "condition_number_before_shrinkage": None,
+                "condition_number_after_shrinkage": None,
+                "shrinkage_alpha": None,
+            }
+            continue
+
+        matrix = np.asarray(centered_rows, dtype=float)
+        trimmed_matrix, n_outliers_removed = trim_outliers(matrix)
+
+        # Re-center on the trimmed (outlier-free) sample's own mean so the stored "mean" and
+        # the covariance/precision used by mahalanobis_combined_score are mutually consistent
+        # and both robust -- instead of reusing the non-robust population mean for centering.
+        # Circular columns already hold deltas from the population mean; a circular (vector-sum)
+        # mean of those deltas is required here, not a plain arithmetic mean, because a wide
+        # circular spread (e.g. shoulder_tilt at Finish) can straddle the +-180 wrap boundary.
+        mean_residual = np.asarray(
+            [
+                circular_mean(trimmed_matrix[:, i].tolist())
+                if feature_name in CIRCULAR_FEATURES
+                else float(trimmed_matrix[:, i].mean())
+                for i, feature_name in enumerate(REQUIRED_FEATURES)
+            ]
+        )
+        robust_mean_vector = [
+            circular_delta(mean_vector[i] + mean_residual[i], 0.0)
+            if feature_name in CIRCULAR_FEATURES
+            else mean_vector[i] + mean_residual[i]
+            for i, feature_name in enumerate(REQUIRED_FEATURES)
+        ]
+        final_centered = np.asarray(
+            [
+                [
+                    circular_delta(trimmed_matrix[row_idx, i], mean_residual[i])
+                    if feature_name in CIRCULAR_FEATURES
+                    else trimmed_matrix[row_idx, i] - mean_residual[i]
+                    for i, feature_name in enumerate(REQUIRED_FEATURES)
+                ]
+                for row_idx in range(trimmed_matrix.shape[0])
+            ]
+        )
+
+        cov = sample_covariance(final_centered)
+        shrunk_cov, condition_before, condition_after, alpha = shrink_covariance(cov)
+        precision = np.linalg.inv(shrunk_cov)
+        assert np.all(np.isfinite(precision))
+
+        events[str(event_index)] = {
+            "feature_order": REQUIRED_FEATURES,
+            "mean": robust_mean_vector,
+            "population_mean": mean_vector,
+            "n_complete": n_complete,
+            "n_outliers_removed": n_outliers_removed,
+            "covariance": shrunk_cov.tolist(),
+            "precision": precision.tolist(),
+            "condition_number_before_shrinkage": condition_before,
+            "condition_number_after_shrinkage": condition_after,
+            "shrinkage_alpha": alpha,
+        }
+
+    return {
+        "metadata": {
+            "source": "data/pro_feature_raw.csv",
+            "features": REQUIRED_FEATURES,
+            "circular_features": sorted(CIRCULAR_FEATURES),
+            "event_names": EVENT_NAMES,
+            "centering_rule": (
+                "Outlier detection centers on the population mean (pro_feature_stats_reliability.json, "
+                "'population_mean' below). After trimming, the covariance/precision and the stored "
+                "'mean' are both recomputed around the trimmed sample's own mean, so mean and "
+                "covariance stay mutually consistent and both outlier-robust."
+            ),
+            "outlier_trim_rule": (
+                f"Up to {OUTLIER_TRIM_ITERATIONS} passes drop rows whose squared Mahalanobis "
+                f"distance (against the running fit) exceeds the chi2(5) "
+                f"{OUTLIER_TRIM_CHI2_PERCENTILE}th percentile, refitting covariance each pass."
+            ),
+            "shrinkage_rule": (
+                f"If condition number > {SHRINKAGE_TRIGGER_CONDITION}, shrink toward "
+                f"(avg_variance * I) in steps of {SHRINKAGE_STEP} until condition number "
+                f"<= {SHRINKAGE_TARGET_CONDITION} or alpha reaches {SHRINKAGE_MAX_ALPHA}."
+            ),
+        },
+        "events": events,
+    }
+
+
+def write_covariance_json(covariance_stats: dict, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as f:
+        json.dump(covariance_stats, f, indent=2, ensure_ascii=False)
+
+
 def write_stats_csv(stats: dict, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
@@ -257,9 +457,14 @@ def main() -> int:
     write_stats_csv(stats, stats_csv)
     write_summary(stats, summary_path)
 
+    covariance_json = Path(args.covariance_json)
+    covariance_stats = compute_covariance_stats(rows, stats)
+    write_covariance_json(covariance_stats, covariance_json)
+
     print(f"Reliability JSON written: {output_json}")
     print(f"Reliability CSV written: {stats_csv}")
     print(f"Summary written: {summary_path}")
+    print(f"Covariance JSON written: {covariance_json}")
     return 0
 
 

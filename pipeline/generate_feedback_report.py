@@ -343,6 +343,121 @@ def build_motion_metric_lines(motion_metrics: dict[str, Any]) -> list[str]:
     lines.append("")
     lines.append("※ 정면에서 촬영한 영상 기준의 2D 추정치이며, 회전각은 어깨·골반 폭의 변화로 계산한 근사값입니다.")
     return lines
+def iter_combined_score_items(data: dict[str, Any]) -> list[dict[str, Any]]:
+    items = []
+    for event_name, event in ordered_event_items(data.get("events", {})):
+        combined = event.get("combined_score")
+        if not combined:
+            continue
+        items.append(
+            {
+                "event_name": event_name,
+                "grade": combined.get("grade") or "unavailable",
+                "percentile": combined.get("deviation_percentile"),
+                "distance": combined.get("distance"),
+            }
+        )
+    return items
+
+
+def select_combined_score_items(items: list[dict[str, Any]], limit: int = 5) -> list[dict[str, Any]]:
+    candidates = [item for item in items if item["grade"] in {"Needs Improvement", "Good"}]
+    candidates.sort(key=lambda item: item["percentile"] or 0.0, reverse=True)
+    return candidates[:limit]
+
+
+def sentence_for_combined(item: dict[str, Any]) -> str:
+    event_ko = EVENT_KO.get(item["event_name"], item["event_name"])
+    percentile = item["percentile"]
+    percentile_text = f"{percentile:.1f}%" if isinstance(percentile, (int, float)) else "알 수 없음"
+    degree = "매우 드문" if item["grade"] == "Needs Improvement" else "다소 특이한"
+    return (
+        f"{event_ko} 단계는 개별 항목은 대체로 양호하지만, 5개 항목의 조합이 프로 데이터 분포 기준 "
+        f"이례도 {percentile_text}로 {degree} 패턴입니다. (이례도 수치가 높을수록 프로 데이터에서 벗어난 조합입니다.)"
+    )
+
+
+def iter_dynamics_items(data: dict[str, Any]) -> list[dict[str, Any]]:
+    items = []
+    dynamics = data.get("dynamics") or {}
+    for pair_label, pair_data in dynamics.items():
+        features = pair_data.get("features", pair_data) if isinstance(pair_data, dict) else {}
+        for feature_name in REQUIRED_FEATURES:
+            item = features.get(feature_name) if isinstance(features, dict) else None
+            if not item:
+                continue
+            grade = item.get("grade") or "unavailable"
+            reliability = item.get("reliability") or "unknown"
+            robust_z = item.get("robust_z")
+            abs_z = abs(robust_z) if isinstance(robust_z, (int, float)) and math.isfinite(robust_z) else 0.0
+            items.append(
+                {
+                    "pair_label": pair_label,
+                    "feature_name": feature_name,
+                    "grade": grade,
+                    "reliability": reliability,
+                    "robust_z": robust_z,
+                    "abs_z": abs_z,
+                }
+            )
+    return items
+
+
+def select_core_dynamics_items(items: list[dict[str, Any]], limit: int = 5) -> list[dict[str, Any]]:
+    candidates = [
+        item for item in items if item["reliability"] != "low" and item["grade"] in {"Needs Improvement", "Good"}
+    ]
+    candidates.sort(key=importance_key, reverse=True)
+    return candidates[:limit]
+
+
+def select_reference_dynamics_items(items: list[dict[str, Any]], limit: int = 3) -> list[dict[str, Any]]:
+    candidates = [item for item in items if item["reliability"] == "low" and item["grade"] != "Excellent"]
+    candidates.sort(key=importance_key, reverse=True)
+    return candidates[:limit]
+
+
+def _has_final_consonant(word: str) -> bool:
+    if not word:
+        return False
+    code = ord(word[-1])
+    if 0xAC00 <= code <= 0xD7A3:
+        return (code - 0xAC00) % 28 != 0
+    return False
+
+
+def _pair_transition_phrase(pair_label: str) -> str:
+    start_name, _, end_name = pair_label.partition("->")
+    start_ko = EVENT_KO.get(start_name, start_name)
+    end_ko = EVENT_KO.get(end_name, end_name)
+    particle = "으로" if _has_final_consonant(end_ko) else "로"
+    return f"{start_ko}에서 {end_ko}{particle} 이어지는"
+
+
+def sentence_for_dynamics_core(item: dict[str, Any]) -> str:
+    transition = _pair_transition_phrase(item["pair_label"])
+    feature_ko = FEATURE_KO.get(item["feature_name"], item["feature_name"])
+    z_text = f" robust_z는 {item['robust_z']:.2f}입니다." if isinstance(item["robust_z"], (int, float)) else ""
+
+    if item["grade"] == "Needs Improvement":
+        sentence = f"{transition} 구간의 {feature_ko} 변화량이 프로 기준과 크게 차이가 있습니다."
+    else:
+        sentence = f"{transition} 구간의 {feature_ko} 변화량이 프로 기준과 약간 차이가 있습니다."
+
+    if item["reliability"] == "high":
+        sentence += " 이 구간은 프로 선수들 사이에서도 변화 패턴이 일관적인 지표이므로 확인하는 것이 좋습니다."
+    elif item["reliability"] == "medium":
+        sentence += " 일반적인 점검 항목으로 참고할 수 있습니다."
+    return sentence + z_text
+
+
+def sentence_for_dynamics_reference(item: dict[str, Any]) -> str:
+    transition = _pair_transition_phrase(item["pair_label"])
+    feature_ko = FEATURE_KO.get(item["feature_name"], item["feature_name"])
+    return (
+        f"{transition} 구간의 {feature_ko} 변화량은 프로 기준과 차이가 있으나, "
+        "프로 선수 간 개인차가 큰 구간이므로 참고용으로만 보는 것이 적절합니다."
+    )
 
 
 def summary_sentence(counts: Counter, total: int) -> str:
@@ -411,6 +526,30 @@ def build_korean_feedback(
         lines.append("- 이 분석 결과에는 스윙 전체 리듬 지표가 포함되어 있지 않습니다.")
 
     lines.extend(build_motion_metric_lines(data.get("motion_metrics") or {}))
+    combined_all = iter_combined_score_items(data)
+    combined_flagged = select_combined_score_items(combined_all)
+    lines.extend(["", "[결합 스코어 참고 - 항목 조합 이상 탐지]"])
+    if combined_flagged:
+        for item in combined_flagged:
+            lines.append(f"- {sentence_for_combined(item)}")
+    elif combined_all:
+        lines.append("- 결합 스코어 관점에서 특별히 이례적인 이벤트는 없습니다.")
+    else:
+        lines.append("- 이 결과에는 결합 스코어 정보가 포함되어 있지 않습니다.")
+
+    dynamics_all = iter_dynamics_items(data)
+    dynamics_core = select_core_dynamics_items(dynamics_all)
+    dynamics_reference = select_reference_dynamics_items(dynamics_all)
+    lines.extend(["", "[스윙 다이내믹스 참고 - 이벤트 간 변화량]"])
+    if dynamics_core or dynamics_reference:
+        for item in dynamics_core:
+            lines.append(f"- {sentence_for_dynamics_core(item)}")
+        for item in dynamics_reference:
+            lines.append(f"- {sentence_for_dynamics_reference(item)}")
+    elif dynamics_all:
+        lines.append("- 스윙 다이내믹스 관점에서 특별히 확인이 필요한 구간은 없습니다.")
+    else:
+        lines.append("- 이 결과에는 스윙 다이내믹스 정보가 포함되어 있지 않습니다.")
 
     lines.extend(
         [
