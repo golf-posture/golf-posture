@@ -35,8 +35,10 @@ REQUIRED_FEATURES = [
     "shoulder_tilt",
     "hip_tilt",
     "spine_tilt",
-    "xfactor",
 ]
+
+DERIVED_FEATURES = ["xfactor"]
+GRADED_FEATURES = REQUIRED_FEATURES + DERIVED_FEATURES
 
 CIRCULAR_FEATURES = {"shoulder_tilt", "hip_tilt"}
 RELIABILITY_WEIGHT = {"high": 1.0, "medium": 0.7, "low": 0.35, "unknown": 0.5}
@@ -588,6 +590,11 @@ def calculate_angle(p1, p2, p3) -> float | None:
     cos = np.dot(v1, v2) / denom
     return float(np.degrees(np.arccos(np.clip(cos, -1.0, 1.0))))
 
+def add_derived_features(features: dict[str, float | None]) -> dict[str, float | None]:
+    out = dict(features)
+    shoulder, hip = out.get("shoulder_tilt"), out.get("hip_tilt")
+    out["xfactor"] = circular_delta(shoulder, hip) if shoulder is not None and hip is not None else None
+    return out
 
 def compute_features(landmarks: dict | None, handedness: str) -> dict[str, float | None]:
     features = {name: None for name in REQUIRED_FEATURES}
@@ -624,9 +631,6 @@ def compute_features(landmarks: dict | None, handedness: str) -> dict[str, float
         dy = mid_h[1] - mid_s[1]
         dx = mid_h[0] - mid_s[0]
         features["spine_tilt"] = float(np.degrees(np.arctan2(dx, dy)))
-    if features.get("shoulder_tilt") is not None and features.get("hip_tilt") is not None:
-        features["xfactor"] = circular_delta(features["shoulder_tilt"], features["hip_tilt"])
-
     return features
 
 
@@ -654,7 +658,7 @@ def feedback_for_event(
     event_stats = stats.get(str(event_idx), {})
     event_reliability_stats = (reliability_stats or {}).get(str(event_idx), {})
     feedback = {}
-    for feature_name in REQUIRED_FEATURES:
+    for feature_name in GRADED_FEATURES:
         value = features.get(feature_name)
         base_stat = event_stats.get(feature_name)
         reliability_stat = event_reliability_stats.get(feature_name)
@@ -1421,6 +1425,7 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
                     "computed_feature_count": 0,
                 }
             selected_counts[selected_backend] = selected_counts.get(selected_backend, 0) + 1
+            selected_features = add_derived_features(selected["features"])   # ← 추가한 줄
 
             result["events"][event_name] = {
                 "frame_index": frame_index,
@@ -1428,10 +1433,10 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
                 "pose_detected": bool(selected["pose_detected"]),
                 "selected_pose_backend": selected_backend,
                 "selected_landmarks": selected.get("landmarks"),
-                "features": selected["features"],
-                "feedback": feedback_for_event(event_idx, selected["features"], stats, reliability_stats),
+                "features": selected_features,                                    # ← 변경
+                "feedback": feedback_for_event(event_idx, selected_features, stats, reliability_stats),   # ← 변경
                 "combined_score": mahalanobis_combined_score(
-                    selected["features"], event_idx, covariance_stats
+                    selected_features, event_idx, covariance_stats                 # ← 변경
                 ),
                 "pose_candidates": {
                     "mediapipe": media_result,

@@ -145,6 +145,8 @@ def _angle_records(data: dict[str, Any]) -> list[dict[str, Any]]:
     for event_name in EVENT_NAMES:
         feedback = ((data.get("events") or {}).get(event_name) or {}).get("feedback") or {}
         for feature, item in feedback.items():
+            if _family_of(feature) is None:
+                continue
             records.append({
                 "event": event_name,
                 "feature": feature,
