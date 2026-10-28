@@ -11,6 +11,11 @@ from typing import Any
 import cv2
 import numpy as np
 
+try:
+    from pipeline.motion_metrics import evaluate_motion_metrics, landmarks_by_event_from_result
+except ImportError:  # allows running the file directly
+    from motion_metrics import evaluate_motion_metrics, landmarks_by_event_from_result
+
 
 EVENT_NAMES = [
     "Address",
@@ -29,6 +34,7 @@ REQUIRED_FEATURES = [
     "shoulder_tilt",
     "hip_tilt",
     "spine_tilt",
+    "xfactor",
 ]
 
 CIRCULAR_FEATURES = {"shoulder_tilt", "hip_tilt"}
@@ -88,6 +94,16 @@ def parse_args() -> argparse.Namespace:
         "--reference-skeletons",
         default="data/pro_reference_skeletons.json",
         help="Optional pro reference skeleton JSON for user/pro comparison images.",
+    )
+    parser.add_argument(
+        "--motion-stats",
+        default="data/pro_motion_stats.json",
+        help="Optional pro stats JSON for landmark-based motion metrics (turn, head, weight shift...).",
+    )
+    parser.add_argument(
+        "--sequence-stats",
+        default="data/pro_sequence_stats.json",
+        help="Optional swing-level (non per-event) stats JSON, e.g. tempo ratio.",
     )
     parser.add_argument(
         "--output",
@@ -282,6 +298,70 @@ class SampleVideo:
         return sample
 
 
+def decode_events_monotonic(probs: np.ndarray, num_events: int) -> list[int]:
+    """Assign each event class to a distinct, chronologically increasing frame,
+    maximizing the total log-probability across all events jointly.
+
+    A naive per-class argmax (max probability frame for each of the 8 event
+    classes, computed independently) has no constraint that Address < Toe-up <
+    ... < Finish, and can pick frames out of order -- physically impossible for
+    a real swing, and it breaks any downstream logic (e.g. tempo ratio) that
+    assumes chronological event order.
+
+    A simpler greedy fix (pick event 0's best frame, then search only after it
+    for event 1, and so on) can paint itself into a corner: if an early event
+    is placed too late (e.g. because the model is genuinely unsure), there may
+    not be enough remaining frames left for the later events, forcing them to
+    collapse onto the same frame.
+
+    This decoder instead solves for the globally optimal monotonic assignment
+    with dynamic programming: for each event i and candidate frame t, it finds
+    the best cumulative log-probability of assigning events 0..i to frames
+    that are strictly increasing and end at frame t. It then backtracks to
+    recover the single best full assignment. This lets an early event "give
+    up" a little of its own probability if that leaves enough room for a much
+    better overall placement of the later events, rather than committing
+    greedily and getting stuck.
+    """
+    total_frames = probs.shape[0]
+    eps = 1e-12
+    log_probs = np.log(probs[:, :num_events] + eps)
+
+    # dp[t] = best cumulative log-prob for the current event ending at frame t
+    # (frames before the current event's earliest-possible slot are invalid).
+    dp = np.full(total_frames, -np.inf)
+    backtrack = np.full((num_events, total_frames), -1, dtype=int)
+
+    for t in range(total_frames):
+        dp[t] = log_probs[t, 0] if t >= 0 else -np.inf
+    # event 0 has no predecessor constraint beyond t >= 0, already satisfied.
+
+    for event_idx in range(1, num_events):
+        new_dp = np.full(total_frames, -np.inf)
+        # running_best[t] = max(dp[0..t-1]), and running_arg[t] = argmax index
+        running_best = -np.inf
+        running_arg = -1
+        for t in range(total_frames):
+            if t > 0:
+                if dp[t - 1] > running_best:
+                    running_best = dp[t - 1]
+                    running_arg = t - 1
+            if running_arg == -1:
+                continue  # no valid predecessor frame yet
+            new_dp[t] = running_best + log_probs[t, event_idx]
+            backtrack[event_idx, t] = running_arg
+        dp = new_dp
+
+    end_frame = int(np.argmax(dp))
+    chosen = [0] * num_events
+    chosen[num_events - 1] = end_frame
+    frame = end_frame
+    for event_idx in range(num_events - 1, 0, -1):
+        frame = int(backtrack[event_idx, frame])
+        chosen[event_idx - 1] = frame
+    return chosen
+
+
 def detect_swingnet_events(
     video_path: Path,
     checkpoint_path: Path,
@@ -352,7 +432,7 @@ def detect_swingnet_events(
     if probs is None:
         raise RuntimeError(f"SwingNet produced no probabilities for {video_path}")
 
-    events = np.argmax(probs, axis=0)[:-1]
+    events = decode_events_monotonic(probs, len(EVENT_NAMES))
     confidence = [float(probs[event_frame, event_idx]) for event_idx, event_frame in enumerate(events)]
     return [int(e) for e in events], confidence
 
@@ -480,6 +560,8 @@ def compute_features(landmarks: dict | None, handedness: str) -> dict[str, float
         dy = mid_h[1] - mid_s[1]
         dx = mid_h[0] - mid_s[0]
         features["spine_tilt"] = float(np.degrees(np.arctan2(dx, dy)))
+    if features.get("shoulder_tilt") is not None and features.get("hip_tilt") is not None:
+        features["xfactor"] = circular_delta(features["shoulder_tilt"], features["hip_tilt"])
 
     return features
 
@@ -563,6 +645,91 @@ def feedback_for_event(
                     item["message"] += " Low reliability: treat this as a reference signal, not a strong correction."
         feedback[feature_name] = item
     return feedback
+
+
+SEQUENCE_EVENT_INDICES = {"address": 0, "top": 3, "impact": 5}
+
+
+def compute_tempo_ratio(event_frames: list[int]) -> dict[str, Any]:
+    address_frame = event_frames[SEQUENCE_EVENT_INDICES["address"]]
+    top_frame = event_frames[SEQUENCE_EVENT_INDICES["top"]]
+    impact_frame = event_frames[SEQUENCE_EVENT_INDICES["impact"]]
+    backswing = top_frame - address_frame
+    downswing = impact_frame - top_frame
+    diagnostics = {
+        "address_frame": address_frame,
+        "top_frame": top_frame,
+        "impact_frame": impact_frame,
+        "backswing_frames": backswing,
+        "downswing_frames": downswing,
+    }
+    if backswing <= 0 or downswing <= 0:
+        problems = []
+        if backswing <= 0:
+            problems.append(
+                f"Top frame ({top_frame}) is not after Address frame ({address_frame})."
+            )
+        if downswing <= 0:
+            problems.append(
+                f"Impact frame ({impact_frame}) is not after Top frame ({top_frame})."
+            )
+        diagnostics["ratio"] = None
+        diagnostics["problem"] = " ".join(problems)
+        return diagnostics
+    diagnostics["ratio"] = float(backswing) / float(downswing)
+    diagnostics["problem"] = None
+    return diagnostics
+
+
+def evaluate_sequence_features(
+    event_frames: list[int],
+    sequence_stats: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Score swing-level features (e.g. tempo ratio) that span multiple events,
+    reusing the same z-score/reliability pattern as feedback_for_event.
+    """
+    result: dict[str, Any] = {}
+    tempo_diagnostics = compute_tempo_ratio(event_frames)
+    tempo_ratio = tempo_diagnostics["ratio"]
+    stat = (sequence_stats or {}).get("tempo_ratio")
+    item = {
+        "value": tempo_ratio,
+        "pro_mean": None,
+        "pro_std": None,
+        "z_score": None,
+        "grade": "unavailable",
+        "reliability": "unknown",
+        "feedback_strength": "normal",
+        "reliability_reason": "sequence stats not available",
+        "diagnostics": tempo_diagnostics,
+        "message": "",
+    }
+    if tempo_ratio is None:
+        item["message"] = f"Tempo ratio unavailable: {tempo_diagnostics['problem']}"
+    elif stat is None:
+        item["message"] = "No pro reference stats found for tempo_ratio."
+    else:
+        mean = stat.get("mean")
+        std = stat.get("std")
+        item["reliability"] = stat.get("reliability", "unknown")
+        item["feedback_strength"] = stat.get("feedback_strength", "normal")
+        item["reliability_reason"] = stat.get("reliability_reason", "")
+        if mean is None or std is None or std <= 0:
+            item["message"] = "Pro reference std is missing or zero for tempo_ratio."
+        else:
+            item["pro_mean"] = mean
+            item["pro_std"] = std
+            z_score = (tempo_ratio - mean) / std
+            item["z_score"] = float(z_score)
+            item["grade"] = grade_from_z(z_score)
+            item["message"] = (
+                f"tempo_ratio: {item['grade']} (value={tempo_ratio:.2f}, pro_mean={mean:.2f}, "
+                f"pro_std={std:.2f}, z={z_score:.2f}, reliability={item['reliability']})"
+            )
+            if item["reliability"] == "low" and item["grade"] == "Needs Improvement":
+                item["message"] += " Low reliability: treat this as a reference signal, not a strong correction."
+    result["tempo_ratio"] = item
+    return result
 
 
 def count_features(features: dict[str, float | None]) -> int:
@@ -848,6 +1015,18 @@ def write_outputs(result: dict[str, Any], json_path: Path, txt_path: Path) -> No
         lines.append(f"Selected backend: {comparison.get('selected_backend')}")
         lines.append(f"Selection reason: {comparison.get('selection_reason')}")
 
+    if result.get("sequence_features"):
+        lines.append("")
+        lines.append("Sequence features (whole-swing, not tied to a single event):")
+        for feature_name, item in result["sequence_features"].items():
+            z = item.get("z_score")
+            z_text = "n/a" if z is None or (isinstance(z, float) and math.isnan(z)) else f"{z:.2f}"
+            lines.append(
+                f"  - {feature_name}: {item.get('grade')} "
+                f"value={item.get('value')} z={z_text} "
+                f"reliability={item.get('reliability')} strength={item.get('feedback_strength')}"
+            )
+
     for event_name, event in result.get("events", {}).items():
         lines.append("")
         lines.append(
@@ -893,6 +1072,8 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         "json_result_path": None,
         "text_summary_path": None,
         "events": {},
+        "sequence_features": {},
+        "motion_metrics": {},
         "pose_backend_comparison": {
             "mediapipe": {"attempted": False, "pose_detected_events": 0, "notes": []},
             "yolopose": {"attempted": False, "pose_detected_events": 0, "notes": []},
@@ -929,6 +1110,9 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     except Exception as exc:
         result["errors"].append(str(exc))
         return result, 1
+
+    sequence_stats = load_optional_stats(Path(args.sequence_stats))
+    result["sequence_features"] = evaluate_sequence_features(event_frames, sequence_stats)
 
     attempt_media = args.pose_backend in {"mediapipe", "auto", "hybrid"}
     attempt_yolo = args.pose_backend in {"yolopose", "auto", "hybrid"}
@@ -1045,6 +1229,12 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
 
     result["pose_backend_comparison"]["selected_backend"] = selected_backend
     result["pose_backend_comparison"]["selection_reason"] = reason
+
+    motion_stats = load_optional_stats(Path(args.motion_stats))
+    result["motion_metrics"] = evaluate_motion_metrics(
+        landmarks_by_event_from_result(result["events"], EVENT_NAMES),
+        motion_stats,
+    )
     return result, 0
 
 
