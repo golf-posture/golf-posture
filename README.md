@@ -167,29 +167,49 @@ pixi run python -m pipeline.run_analysis --help
 
 ## 모델 가중치
 
-모델 가중치는 git에 포함하지 않습니다. 아래 위치에 직접 배치해야 합니다.
+대형 모델 가중치는 git에 포함하지 않습니다. 아래 위치에 직접 배치해야 합니다. 작은 후보정 모델 `pipeline/models/swingnet_phase_ranker_v1.json`은 실행에 필요하므로 저장소에 포함합니다.
 
 ```text
 event_detection/
-  mobilenet_v2.pth.tar
   models/
     swingnet_1800.pth.tar
+yolov8n-pose.pt                    # subject-phase 후보정 사용 시 필요
 ```
 
 역할:
 
 ```text
-mobilenet_v2.pth.tar
--> SwingNet 내부 CNN backbone 초기화에 사용
-
 swingnet_1800.pth.tar
 -> GolfDB 기반 8개 스윙 이벤트 검출에 사용
+
+yolov8n-pose.pt
+-> subject-phase에서 골퍼 선택과 관절 관측에 사용
 ```
 
-원래 README에서 사용하던 참고 링크:
+완성된 SwingNet 체크포인트로 실행할 때 `mobilenet_v2.pth.tar`는 필요하지 않습니다. `EventDetector(pretrain=True)`를 직접 사용하는 경우에만 기존처럼 `event_detection/`에 배치합니다.
+
+가중치 출처:
 
 - MobileNetV2: https://github.com/tonylins/pytorch-mobilenet-v2
 - SwingNet checkpoint: https://drive.google.com/file/d/1MBIDwHSM8OKRbxS8YfyRLnUBAdt0nupW/view
+
+저장소 루트에서 YOLO Pose 가중치를 준비합니다.
+
+```powershell
+pixi run python -c "from ultralytics import YOLO; YOLO('yolov8n-pose.pt')"
+```
+
+### 이벤트 검출 후보정 선택
+
+```powershell
+pixi run python -m pipeline.run_analysis --video "한_스윙_영상.mp4" --event-refinement subject-phase
+```
+
+정면 단일 화면의 드라이버 한 스윙을 대상으로 한 선택 옵션입니다. 골퍼 중심 고정 영역과 프레임 주변 64프레임 문맥, 고정된 선형 후보정기를 사용하며 SwingNet 가중치를 재학습하지 않습니다. 기본값은 `--event-refinement none`이고, 후보정은 `--event-selection ordered`와 `--seq-length 64`에서만 사용할 수 있습니다. 공개 SwingNet 체크포인트와 제공된 후보정 JSON은 SHA256으로 검증합니다. CUDA가 없으면 CPU로 실행합니다.
+
+영상에서 잘린 이벤트를 알고 있으면 `--missing-events Finish`처럼 지정할 수 있습니다. `--min-event-confidence 0.5`는 선택한 시점의 모델 점수가 기준보다 낮으면 해당 이벤트를 보류합니다. 이 점수는 검출 정확도로 보정된 신뢰도가 아닙니다. 누락·보류 이벤트의 `frame_index`는 `null`이며 자세 평가에서 제외됩니다. Address·Top·Impact 중 하나가 없으면 리듬도 `unavailable`로 반환합니다. 누락 이벤트를 지정한 후보정은 완전한 8이벤트용 ranker 대신 관측된 이벤트의 시간 순서만 선택합니다.
+
+기존 피드백·관절 추적·QC·기준 통계는 계속 사용합니다. 새 데이터의 일반화나 피드백 정확도 향상을 보장하는 옵션은 아닙니다. 실행 결과는 `outputs/`에 생성되며 입력 영상, 출력물, 실험 자료는 업로드하지 않습니다. 피드백 실행에 쓰는 `data/pro_*.json`은 유지합니다.
 
 ## 사용자 영상 분석 실행
 

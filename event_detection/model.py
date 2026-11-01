@@ -1,13 +1,16 @@
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
 from pathlib import Path
-from MobileNetV2 import MobileNetV2
+
+if __package__:
+    from .MobileNetV2 import MobileNetV2
+else:
+    from MobileNetV2 import MobileNetV2
 
 
 class EventDetector(nn.Module):
     def __init__(self, pretrain, width_mult, lstm_layers, lstm_hidden, bidirectional=True, dropout=True):
-        super(EventDetector, self).__init__()
+        super().__init__()
         self.width_mult = width_mult
         self.lstm_layers = lstm_layers
         self.lstm_hidden = lstm_hidden
@@ -15,30 +18,22 @@ class EventDetector(nn.Module):
         self.dropout = dropout
 
         net = MobileNetV2(width_mult=width_mult)
-        mobilenet_path = Path(__file__).resolve().parent / 'mobilenet_v2.pth.tar'
-        state_dict_mobilenet = torch.load(mobilenet_path, map_location='cpu')
         if pretrain:
-            net.load_state_dict(state_dict_mobilenet)
+            mobilenet_path = Path(__file__).resolve().parent / 'mobilenet_v2.pth.tar'
+            net.load_state_dict(torch.load(mobilenet_path, map_location='cpu'))
 
-        self.cnn = nn.Sequential(*list(net.children())[0][:19])
+        self.cnn = net.features[:19]
         self.rnn = nn.LSTM(int(1280*width_mult if width_mult > 1.0 else 1280),
                            self.lstm_hidden, self.lstm_layers,
                            batch_first=True, bidirectional=bidirectional)
-        if self.bidirectional:
-            self.lin = nn.Linear(2*self.lstm_hidden, 9)
-        else:
-            self.lin = nn.Linear(self.lstm_hidden, 9)
+        self.lin = nn.Linear(self.lstm_hidden * (2 if bidirectional else 1), 9)
         if self.dropout:
             self.drop = nn.Dropout(0.5)
 
     def init_hidden(self, batch_size, device=None):
         device = device or next(self.parameters()).device
-        if self.bidirectional:
-            return (Variable(torch.zeros(2*self.lstm_layers, batch_size, self.lstm_hidden, device=device), requires_grad=True),
-                    Variable(torch.zeros(2*self.lstm_layers, batch_size, self.lstm_hidden, device=device), requires_grad=True))
-        else:
-            return (Variable(torch.zeros(self.lstm_layers, batch_size, self.lstm_hidden, device=device), requires_grad=True),
-                    Variable(torch.zeros(self.lstm_layers, batch_size, self.lstm_hidden, device=device), requires_grad=True))
+        shape = (self.lstm_layers * (2 if self.bidirectional else 1), batch_size, self.lstm_hidden)
+        return tuple(torch.zeros(shape, device=device, requires_grad=True) for _ in range(2))
 
     def forward(self, x, lengths=None):
         batch_size, timesteps, C, H, W = x.size()
@@ -53,10 +48,8 @@ class EventDetector(nn.Module):
 
         # LSTM forward
         r_in = c_out.view(batch_size, timesteps, -1)
-        r_out, states = self.rnn(r_in, self.hidden)
+        r_out, _ = self.rnn(r_in, self.hidden)
         out = self.lin(r_out)
         out = out.view(batch_size*timesteps,9)
 
         return out
-
-

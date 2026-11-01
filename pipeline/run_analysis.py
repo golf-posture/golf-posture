@@ -17,6 +17,14 @@ try:
 except ImportError:  # allows running the file directly
     from motion_metrics import evaluate_motion_metrics, landmarks_by_event_from_result
 
+if not __package__:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from pipeline.event_selection import gate_event_frames, ordered_event_frames
+# Re-export existing entry points for experiment scripts and callers.
+from pipeline.swingnet import SampleVideo, detect_swingnet_events, prepare_swingnet_frame
+from pipeline.video_io import read_video_frame
+
 
 EVENT_NAMES = [
     "Address",
@@ -164,6 +172,14 @@ def parse_args() -> argparse.Namespace:
         help="Use evenly spaced mock event frames for integration testing.",
     )
     parser.add_argument("--seq-length", type=int, default=64)
+    parser.add_argument("--event-selection", choices=["independent", "ordered"], default="ordered",
+                        help="Select events independently or enforce strictly increasing frames.")
+    parser.add_argument("--event-refinement", choices=["none", "subject-phase"], default="none",
+                        help="Opt-in fixed golfer crop and SwingNet phase ranker; requires ordered selection and seq-length 64.")
+    parser.add_argument("--missing-events", nargs="*", choices=EVENT_NAMES, default=[],
+                        help="Explicitly known missing events; this is not automatic detection.")
+    parser.add_argument("--min-event-confidence", type=float, default=0.0,
+                        help="Withhold events below this model score (0 disables score filtering). Not calibrated accuracy.")
     return parser.parse_args()
 
 
@@ -297,16 +313,7 @@ def video_frame_count(video_path: Path) -> int:
 
 
 def read_frame(video_path: Path, frame_index: int):
-    cap = cv2.VideoCapture(str(video_path))
-    if not cap.isOpened():
-        cap.release()
-        return None
-    cap.set(cv2.CAP_PROP_POS_FRAMES, int(frame_index))
-    ok, frame = cap.read()
-    cap.release()
-    if not ok:
-        return None
-    return frame
+    return read_video_frame(video_path, int(frame_index))
 
 
 def mock_event_frames(video_path: Path) -> tuple[list[int], list[float | None]]:
@@ -315,191 +322,9 @@ def mock_event_frames(video_path: Path) -> tuple[list[int], list[float | None]]:
     return events, [None] * len(EVENT_NAMES)
 
 
-class SampleVideo:
-    def __init__(self, path: Path, input_size: int = 160, transform=None):
-        self.path = path
-        self.input_size = input_size
-        self.transform = transform
-
-    def __len__(self):
-        return 1
-
-    def __getitem__(self, idx):
-        cap = cv2.VideoCapture(str(self.path))
-        if not cap.isOpened():
-            raise RuntimeError(f"Could not open video: {self.path}")
-
-        height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-        ratio = self.input_size / max(height, width)
-        new_size = (int(height * ratio), int(width * ratio))
-        delta_w = self.input_size - new_size[1]
-        delta_h = self.input_size - new_size[0]
-        top, bottom = delta_h // 2, delta_h - (delta_h // 2)
-        left, right = delta_w // 2, delta_w - (delta_w // 2)
-
-        images = []
-        while True:
-            ok, img = cap.read()
-            if not ok:
-                break
-            resized = cv2.resize(img, (new_size[1], new_size[0]))
-            bordered = cv2.copyMakeBorder(
-                resized,
-                top,
-                bottom,
-                left,
-                right,
-                cv2.BORDER_CONSTANT,
-                value=[0.406 * 255, 0.456 * 255, 0.485 * 255],
-            )
-            images.append(cv2.cvtColor(bordered, cv2.COLOR_BGR2RGB))
-        cap.release()
-
-        labels = np.zeros(len(images))
-        sample = {"images": np.asarray(images), "labels": np.asarray(labels)}
-        if self.transform:
-            sample = self.transform(sample)
-        return sample
-
-
 def decode_events_monotonic(probs: np.ndarray, num_events: int) -> list[int]:
-    """Assign each event class to a distinct, chronologically increasing frame,
-    maximizing the total log-probability across all events jointly.
-
-    A naive per-class argmax (max probability frame for each of the 8 event
-    classes, computed independently) has no constraint that Address < Toe-up <
-    ... < Finish, and can pick frames out of order -- physically impossible for
-    a real swing, and it breaks any downstream logic (e.g. tempo ratio) that
-    assumes chronological event order.
-
-    A simpler greedy fix (pick event 0's best frame, then search only after it
-    for event 1, and so on) can paint itself into a corner: if an early event
-    is placed too late (e.g. because the model is genuinely unsure), there may
-    not be enough remaining frames left for the later events, forcing them to
-    collapse onto the same frame.
-
-    This decoder instead solves for the globally optimal monotonic assignment
-    with dynamic programming: for each event i and candidate frame t, it finds
-    the best cumulative log-probability of assigning events 0..i to frames
-    that are strictly increasing and end at frame t. It then backtracks to
-    recover the single best full assignment. This lets an early event "give
-    up" a little of its own probability if that leaves enough room for a much
-    better overall placement of the later events, rather than committing
-    greedily and getting stuck.
-    """
-    total_frames = probs.shape[0]
-    eps = 1e-12
-    log_probs = np.log(probs[:, :num_events] + eps)
-
-    # dp[t] = best cumulative log-prob for the current event ending at frame t
-    # (frames before the current event's earliest-possible slot are invalid).
-    dp = np.full(total_frames, -np.inf)
-    backtrack = np.full((num_events, total_frames), -1, dtype=int)
-
-    for t in range(total_frames):
-        dp[t] = log_probs[t, 0] if t >= 0 else -np.inf
-    # event 0 has no predecessor constraint beyond t >= 0, already satisfied.
-
-    for event_idx in range(1, num_events):
-        new_dp = np.full(total_frames, -np.inf)
-        # running_best[t] = max(dp[0..t-1]), and running_arg[t] = argmax index
-        running_best = -np.inf
-        running_arg = -1
-        for t in range(total_frames):
-            if t > 0:
-                if dp[t - 1] > running_best:
-                    running_best = dp[t - 1]
-                    running_arg = t - 1
-            if running_arg == -1:
-                continue  # no valid predecessor frame yet
-            new_dp[t] = running_best + log_probs[t, event_idx]
-            backtrack[event_idx, t] = running_arg
-        dp = new_dp
-
-    end_frame = int(np.argmax(dp))
-    chosen = [0] * num_events
-    chosen[num_events - 1] = end_frame
-    frame = end_frame
-    for event_idx in range(num_events - 1, 0, -1):
-        frame = int(backtrack[event_idx, frame])
-        chosen[event_idx - 1] = frame
-    return chosen
-
-
-def detect_swingnet_events(
-    video_path: Path,
-    checkpoint_path: Path,
-    seq_length: int,
-) -> tuple[list[int], list[float]]:
-    if not checkpoint_path.exists():
-        raise FileNotFoundError(
-            f"SwingNet checkpoint not found: {checkpoint_path}. "
-            "Pass --checkpoint or place swingnet_1800.pth.tar in event_detection/models."
-        )
-
-    try:
-        import torch
-        import torch.nn.functional as F
-        from torch.utils.data import DataLoader
-        from torchvision import transforms
-    except Exception as exc:
-        raise RuntimeError(
-            "SwingNet inference requires torch and torchvision. "
-            "Install them or run with --mock-events for integration testing."
-        ) from exc
-
-    event_dir = repo_root() / "event_detection"
-    sys.path.insert(0, str(event_dir))
-    try:
-        from dataloader import Normalize, ToTensor
-        from model import EventDetector
-    finally:
-        if sys.path[0] == str(event_dir):
-            sys.path.pop(0)
-
-    dataset = SampleVideo(
-        video_path,
-        transform=transforms.Compose(
-            [ToTensor(), Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]
-        ),
-    )
-    loader = DataLoader(dataset, batch_size=1, shuffle=False, drop_last=False)
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = EventDetector(
-        pretrain=True,
-        width_mult=1.0,
-        lstm_layers=1,
-        lstm_hidden=256,
-        bidirectional=True,
-        dropout=False,
-    )
-    checkpoint = torch.load(checkpoint_path, map_location=device)
-    model.load_state_dict(checkpoint["model_state_dict"])
-    model.to(device)
-    model.eval()
-
-    probs = None
-    with torch.no_grad():
-        for sample in loader:
-            images = sample["images"]
-            batch = 0
-            while batch * seq_length < images.shape[1]:
-                start = batch * seq_length
-                end = (batch + 1) * seq_length
-                image_batch = images[:, start:end]
-                logits = model(image_batch.to(device))
-                batch_probs = F.softmax(logits.data, dim=1).cpu().numpy()
-                probs = batch_probs if probs is None else np.append(probs, batch_probs, 0)
-                batch += 1
-
-    if probs is None:
-        raise RuntimeError(f"SwingNet produced no probabilities for {video_path}")
-
-    events = decode_events_monotonic(probs, len(EVENT_NAMES))
-    confidence = [float(probs[event_frame, event_idx]) for event_idx, event_frame in enumerate(events)]
-    return [int(e) for e in events], confidence
+    """Compatibility entry point for the shared chronological event selector."""
+    return ordered_event_frames(probs[:, :num_events])
 
 
 class MediaPipePoseBackend:
@@ -718,12 +543,12 @@ def feedback_for_event(
 SEQUENCE_EVENT_INDICES = {"address": 0, "top": 3, "impact": 5}
 
 
-def compute_tempo_ratio(event_frames: list[int]) -> dict[str, Any]:
+def compute_tempo_ratio(event_frames: list[int | None]) -> dict[str, Any]:
     address_frame = event_frames[SEQUENCE_EVENT_INDICES["address"]]
     top_frame = event_frames[SEQUENCE_EVENT_INDICES["top"]]
     impact_frame = event_frames[SEQUENCE_EVENT_INDICES["impact"]]
-    backswing = top_frame - address_frame
-    downswing = impact_frame - top_frame
+    backswing = top_frame - address_frame if top_frame is not None and address_frame is not None else None
+    downswing = impact_frame - top_frame if impact_frame is not None and top_frame is not None else None
     diagnostics = {
         "address_frame": address_frame,
         "top_frame": top_frame,
@@ -731,6 +556,10 @@ def compute_tempo_ratio(event_frames: list[int]) -> dict[str, Any]:
         "backswing_frames": backswing,
         "downswing_frames": downswing,
     }
+    if backswing is None or downswing is None:
+        diagnostics["ratio"] = None
+        diagnostics["problem"] = "Tempo requires available Address, Top and Impact events."
+        return diagnostics
     if backswing <= 0 or downswing <= 0:
         problems = []
         if backswing <= 0:
@@ -750,7 +579,7 @@ def compute_tempo_ratio(event_frames: list[int]) -> dict[str, Any]:
 
 
 def evaluate_sequence_features(
-    event_frames: list[int],
+    event_frames: list[int | None],
     sequence_stats: dict[str, Any] | None,
 ) -> dict[str, Any]:
     """Score swing-level features (e.g. tempo ratio) that span multiple events,
@@ -1268,6 +1097,9 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         if args.checkpoint
         else repo_root() / "event_detection" / "models" / "swingnet_1800.pth.tar"
     )
+    event_selection = getattr(args, "event_selection", "ordered")
+    missing_events = [EVENT_NAMES.index(name) for name in getattr(args, "missing_events", [])]
+    minimum_confidence = getattr(args, "min_event_confidence", 0.0)
 
     result: dict[str, Any] = {
         "video_path": str(video_path),
@@ -1289,6 +1121,12 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         "json_result_path": None,
         "text_summary_path": None,
         "events": {},
+        "event_detection_policy": {
+            "selection": event_selection,
+            "missing_events_supplied": [EVENT_NAMES[i] for i in missing_events],
+            "minimum_model_score": minimum_confidence,
+            "score_is_calibrated_accuracy": False,
+        },
         "sequence_features": {},
         "motion_metrics": {},
         "pose_backend_comparison": {
@@ -1322,10 +1160,24 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         result["reference_skeletons_available"] = True
 
     try:
+        gate_event_frames([], [], minimum_confidence)
+        refinement = getattr(args, "event_refinement", "none")
+        if refinement == "subject-phase" and (args.mock_events or event_selection != "ordered" or args.seq_length != 64):
+            raise ValueError("subject-phase refinement requires real events, ordered selection and seq-length 64")
         if args.mock_events:
             event_frames, confidence = mock_event_frames(video_path)
+            for event in missing_events:
+                event_frames[event], confidence[event] = None, None
+        elif refinement == "subject-phase":
+            from pipeline.event_refinement import detect_refined_events
+            event_frames, confidence, refinement_details = detect_refined_events(
+                video_path, checkpoint_path, missing_events)
+            result["event_detection_policy"]["refinement"] = refinement_details
         else:
-            event_frames, confidence = detect_swingnet_events(video_path, checkpoint_path, args.seq_length)
+            event_frames, confidence = detect_swingnet_events(
+                video_path, checkpoint_path, args.seq_length, event_selection, missing_events)
+        candidate_frames = list(event_frames)
+        event_frames, withheld_reasons = gate_event_frames(event_frames, confidence, minimum_confidence)
     except Exception as exc:
         result["errors"].append(str(exc))
         return result, 1
@@ -1344,7 +1196,12 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         try:
             from pipeline.user_tracking import analyze_user_video
 
-            tracked_events = analyze_user_video(video_path, [int(f) for f in event_frames], args.handedness)
+            active_events = [i for i, frame in enumerate(event_frames) if frame is not None]
+            tracked_events = {}
+            if active_events:
+                tracked_events = dict(zip(active_events, analyze_user_video(
+                    video_path, [int(event_frames[i]) for i in active_events], args.handedness
+                )))
         except Exception as exc:
             result["errors"].append(f"Tracked pose extraction failed: {type(exc).__name__}: {exc}")
             return result, 1
@@ -1374,13 +1231,16 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
 
     try:
         for event_idx, event_name in enumerate(EVENT_NAMES):
-            frame_index = int(event_frames[event_idx])
-            frame = read_frame(video_path, frame_index)
+            frame_index = event_frames[event_idx]
+            frame_index = int(frame_index) if frame_index is not None else None
+            frame = read_frame(video_path, frame_index) if frame_index is not None else None
             skeleton_path = skeleton_dir / safe_frame_name(event_idx, event_name)
             reference = reference_event(reference_skeletons, event_idx)
             if frame is None:
                 result["events"][event_name] = {
                     "frame_index": frame_index,
+                    "candidate_frame_index": candidate_frames[event_idx],
+                    "event_status": "withheld" if withheld_reasons[event_idx] else "frame_unreadable",
                     "confidence": confidence[event_idx],
                     "pose_detected": False,
                     "selected_pose_backend": None,
@@ -1396,11 +1256,14 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
                     ),
                     "pose_candidates": {},
                     "selected_landmarks": None,
-                    "notes": ["Could not read event frame."],
-                    "event_frame_path": str(frame_dir / safe_frame_name(event_idx, event_name)),
+                    "notes": [withheld_reasons[event_idx] or "Could not read event frame."],
+                    "event_frame_path": None if frame_index is None else str(frame_dir / safe_frame_name(event_idx, event_name)),
                     "skeleton_comparison_path": None,
                     "reference_skeleton_available": reference is not None,
                 }
+                if withheld_reasons[event_idx]:
+                    for item in result["events"][event_name]["feedback"].values():
+                        item["message"] = "Posture evaluation withheld because the event is missing or its model score is below the requested threshold."
                 continue
 
             cv2.imwrite(str(frame_dir / safe_frame_name(event_idx, event_name)), frame)
@@ -1429,6 +1292,8 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
 
             result["events"][event_name] = {
                 "frame_index": frame_index,
+                "candidate_frame_index": candidate_frames[event_idx],
+                "event_status": "candidate",
                 "confidence": confidence[event_idx],
                 "pose_detected": bool(selected["pose_detected"]),
                 "selected_pose_backend": selected_backend,

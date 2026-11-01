@@ -1,2 +1,5 @@
 # SCM syntax highlighting & preventing 3-way merges
 pixi.lock merge=binary linguist-language=YAML linguist-generated=true -diff
+
+# Preserve the frozen ranker bytes for runtime SHA256 verification on every OS.
+pipeline/models/swingnet_phase_ranker_v1.json -text whitespace=cr-at-eol

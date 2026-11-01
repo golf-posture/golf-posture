@@ -17,6 +17,7 @@ pytest-cov = ">=5.0,<6"
 [pypi-dependencies]
 mediapipe = "==0.10.21"
 ultralytics = ">=8.4.60, <9"
+imageio-ffmpeg = "==0.6.0"
 
 [target.linux-64.dependencies]
 libgles = ">=1.7.0,<2"
