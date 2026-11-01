@@ -6,6 +6,15 @@
 # Data files
 *.pkl
 *.mp4
+*.mov
+*.MOV
+*.MP4
+*.avi
+*.mkv
+*.webm
+*.m4v
+*.mts
+*.m2ts
 *.jpg
 *.png
 *.tar
@@ -42,6 +51,7 @@ pose_analysis/debug_overlays/
 data_raw/
 
 # Pipeline outputs
+output/
 outputs/
 
 #personal files
