@@ -4,13 +4,16 @@ import argparse
 import csv
 import json
 import math
+import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
 try:  # package run (python -m pipeline...) or flat run
+    from pipeline.app_feedback import build_app_payload
     from pipeline.user_feedback import build_user_feedback, render_user_feedback_text
 except ImportError:  # pragma: no cover
+    from app_feedback import build_app_payload
     from user_feedback import build_user_feedback, render_user_feedback_text
 
 
@@ -574,12 +577,14 @@ def report_paths(output_dir: Path, filename_prefix: str | None = None) -> dict[s
             "feedback_ko": output_dir / f"{filename_prefix}_feedback_ko.txt",
             "feedback_user": output_dir / f"{filename_prefix}_feedback_user.txt",
             "feedback_user_json": output_dir / f"{filename_prefix}_feedback_user.json",
+            "feedback_app_json": output_dir / f"{filename_prefix}_feedback_app.json",
         }
     return {
         "table_csv": output_dir / "feedback_table.csv",
         "feedback_ko": output_dir / "feedback_ko.txt",
         "feedback_user": output_dir / "feedback_user.txt",
         "feedback_user_json": output_dir / "feedback_user.json",
+        "feedback_app_json": output_dir / "feedback_app.json",
     }
 
 
@@ -612,6 +617,16 @@ def generate_feedback_report(
     paths["feedback_user_json"].write_text(
         json.dumps(user_feedback, ensure_ascii=False, indent=2), encoding="utf-8"
     )
+
+    # App version (docs/app_feedback_schema.md). Separate view of the same result: it never alters the
+    # two files above, and a failure here must not take them down.
+    try:
+        paths["feedback_app_json"].write_text(
+            json.dumps(build_app_payload(data), ensure_ascii=False, indent=2, allow_nan=False),
+            encoding="utf-8",
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(f"WARNING: app feedback JSON was not written ({type(exc).__name__}: {exc})", file=sys.stderr)
     return paths
 
 
@@ -625,6 +640,8 @@ def main() -> int:
     print(f"Feedback table written: {paths['table_csv']}")
     print(f"Korean feedback written: {paths['feedback_ko']}")
     print(f"User-friendly feedback written: {paths['feedback_user']}")
+    if paths["feedback_app_json"].exists():
+        print(f"App feedback JSON written: {paths['feedback_app_json']}")
     return 0
 
 
