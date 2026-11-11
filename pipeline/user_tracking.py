@@ -3,8 +3,11 @@
 Mirrors how data/tracked/ reference statistics were built from the pro videos:
   - elbow angles: 2D angle, visibility >= 0.3, recovered from neighbouring frames, then the same row-level
     QC as the pro data (low_vis / bone / frame / inconsistent) plus a joint-jump check against the neighbouring
-    frames (qc_temporal; not applied to the pro reference, which has no per-frame series). A flagged elbow is
+    frames, with a threshold that depends on the event (qc_temporal.jump_threshold; not applied to the pro
+    reference, which has no per-frame series). A flagged elbow is
     reported as unavailable rather than graded, so a wrong pose does not turn into a wrong 'Needs Improvement'.
+  - arm sides: at Top and Finish the left/right arms are swapped when the trail shoulder is not the higher one
+    on screen (side_correction), before any angle, QC or landmark is derived from the frames.
   - tilts: event frame, visibility >= 0.5.
   - landmarks (for skeleton comparison images): event frame, visibility >= 0.5, like the static backend.
 Population-based outlier flags are not applied to a single user; z-score grading covers extreme values.
@@ -24,9 +27,10 @@ from pipeline.pose_tracking import (
     arm_by_feature,
     extract_tracked_frames,
 )
-from pipeline.qc_temporal import ELBOW_ANGLE_FLOOR_DEG, JUMP_THRESHOLD, arm_jump, elbow_angle_floor
+from pipeline.qc_temporal import ELBOW_ANGLE_FLOOR_DEG, arm_jump, elbow_angle_floor, jump_threshold
 from pipeline.qc_tracked_features import ARMS, arm_flags
 from pipeline.run_analysis import REQUIRED_FEATURES, video_frame_count
+from pipeline.side_correction import correct_arm_sides
 
 TRACK_WARMUP_FRAMES = 10
 LANDMARK_MIN_VISIBILITY = 0.5
@@ -47,10 +51,15 @@ def _landmarks(frame: FrameJoints | None) -> dict[str, tuple[float, float, float
     return apply_visibility(points, LANDMARK_MIN_VISIBILITY)
 
 
-def _jump_flag(frames: Sequence[FrameJoints | None], frame_index: int, joints: Sequence[str]) -> bool:
-    """True when an arm joint leaps away from its neighbouring frames; unmeasurable counts as not flagged."""
+def _jump_flag(
+    frames: Sequence[FrameJoints | None], frame_index: int, joints: Sequence[str], event_index: int
+) -> bool:
+    """True when an arm joint leaps away from its neighbouring frames by more than the event's threshold.
+
+    Unmeasurable counts as not flagged.
+    """
     jump = arm_jump(frames, frame_index, joints)
-    return jump is not None and jump > JUMP_THRESHOLD
+    return jump is not None and jump > jump_threshold(event_index)
 
 
 def build_user_events(
@@ -60,15 +69,16 @@ def build_user_events(
     handedness: str,
 ) -> list[dict[str, Any]]:
     """Per-event features/landmarks/QC; frame_indices index into `frames`."""
+    frames, side_corrected = correct_arm_sides(frames, frame_indices, handedness)
     rows = build_video_rows(0, frames, frame_indices, frame_size, handedness)
     arms = arm_by_feature(handedness)
     arm_joints = {"trail": arms["trail_elbow_angle"], "lead": arms["lead_elbow_angle"]}
     events = []
-    for row, frame_index in zip(rows, frame_indices):
+    for event_index, (row, frame_index, was_corrected) in enumerate(zip(rows, frame_indices, side_corrected)):
         flags = {
             arm: {
                 **arm_flags(row, arm),
-                "jump": _jump_flag(frames, frame_index, arm_joints[arm]),
+                "jump": _jump_flag(frames, frame_index, arm_joints[arm], event_index),
                 "low_angle": elbow_angle_floor(row[f"{arm}_elbow_angle_2d"], ELBOW_ANGLE_FLOOR_DEG),
             }
             for arm in ARMS
@@ -92,6 +102,7 @@ def build_user_events(
                 "lead": flags["lead"],
                 "trail_elbow_source": row["trail_elbow_source"],
                 "lead_elbow_source": row["lead_elbow_source"],
+                "side_corrected": was_corrected,
             },
         })
     return events

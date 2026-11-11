@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from pipeline.side_correction import swap_arm_sides
 from pipeline.user_tracking import build_user_events, tracking_window
 
 FRAME_SIZE = (100, 100)
@@ -137,3 +138,54 @@ class TestBuildUserEvents:
         assert event["pose_detected"] is False
         assert all(value is None for value in event["features"].values())
         assert event["computed_feature_count"] == 0
+
+
+class TestSideCorrection:
+    EVENTS = [0, 6, 12, 18, 24, 30, 36, 42]
+    TOP, MID_DOWNSWING = 3, 4
+
+    @staticmethod
+    def _ordered_frame():
+        """Trail (right) shoulder higher on screen than the lead one; 90 degree trail elbow, straight lead arm."""
+        frame = _frame()
+        frame["RIGHT_SHOULDER"] = _joint(30, 15, 0.9, 0.1, 0.0, 0.0)
+        frame["LEFT_SHOULDER"] = _joint(70, 25, 0.9, -0.1, 0.0, 0.0)
+        return frame
+
+    def _frames_with_swapped(self, event):
+        frames = [self._ordered_frame() for _ in range(48)]
+        for i in range(self.EVENTS[event] - 3, self.EVENTS[event] + 4):
+            frames[i] = swap_arm_sides(self._ordered_frame())
+        return frames
+
+    def test_swapped_top_is_measured_on_the_right_arms(self):
+        events = _events(self._frames_with_swapped(self.TOP), self.EVENTS)
+
+        top = events[self.TOP]
+        assert top["features"]["trail_elbow_angle"] == pytest.approx(90.0)
+        assert top["features"]["lead_elbow_angle"] == pytest.approx(180.0)
+        assert top["qc"]["side_corrected"] is True
+        assert [event["qc"]["side_corrected"] for event in events].count(True) == 1
+
+    def test_correction_does_not_look_like_a_joint_jump(self):
+        top = _events(self._frames_with_swapped(self.TOP), self.EVENTS)[self.TOP]
+
+        assert top["qc"]["trail"]["jump"] is False
+        assert top["qc"]["lead"]["jump"] is False
+
+    def test_landmarks_of_a_corrected_event_use_the_corrected_sides(self):
+        top = _events(self._frames_with_swapped(self.TOP), self.EVENTS)[self.TOP]
+
+        assert top["landmarks"]["RIGHT_SHOULDER"][:2] == (30, 15)
+        assert top["landmarks"]["LEFT_SHOULDER"][:2] == (70, 25)
+
+    def test_other_events_are_left_as_the_model_reported_them(self):
+        event = _events(self._frames_with_swapped(self.MID_DOWNSWING), self.EVENTS)[self.MID_DOWNSWING]
+
+        assert event["qc"]["side_corrected"] is False
+        assert event["features"]["trail_elbow_angle"] == pytest.approx(180.0)
+
+    def test_correct_frames_are_reported_as_not_corrected(self):
+        events = _events([self._ordered_frame() for _ in range(48)], self.EVENTS)
+
+        assert not any(event["qc"]["side_corrected"] for event in events)
