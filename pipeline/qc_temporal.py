@@ -24,12 +24,33 @@ Frame = Mapping[str, Joint]
 # flagged 31% of correct arms (fast swings move joints a lot between frames). 0.3 flags 15.5% of correct pro
 # arms and catches 5/12 on the user videos. Chosen as the compromise; see qc_evaluate for the numbers.
 JUMP_THRESHOLD = 0.3
+# Per-event joint-jump threshold = max(JUMP_FLOOR, JUMP_K * median jump of the arms at that event). How far a
+# correct arm moves between frames depends on the event: the median jump is 0.003-0.056 torso lengths at Address,
+# Toe-up, Mid-backswing, Top and Finish, but 0.13-0.18 at Mid-downswing, Impact and Mid-follow-through, where one
+# threshold either misses wrong arms in the slow events or discards correct ones in the fast events. On the 867
+# hand-labelled arms (47 new pro videos, 6 user videos, 47 pro frames; after the Top/Finish side correction)
+# the single 0.3 caught 73/169 wrong arms and discarded 48/698 correct ones; this catches 56/169 and discards
+# 20/698. Held-out (5-fold by video, and fitting on one label set to test on the other), the score
+# catch - 2 * discarded improved by 30, 6 and 34 over the single threshold. The thresholds at the three fast
+# events come out above one torso length, i.e. the jump rule is effectively off there. K and the floor were
+# chosen on the same labels; the medians come from pro videos only. Order: Address, Toe-up, Mid-backswing,
+# Top, Mid-downswing, Impact, Mid-follow-through, Finish.
+JUMP_MEDIAN_BY_EVENT = (0.003, 0.041, 0.056, 0.042, 0.182, 0.134, 0.161, 0.042)
+JUMP_K = 8.0
+JUMP_FLOOR = 0.1
 # Elbow-angle floor in degrees, proposed before looking at any label results. On hand labels: no correct arm
 # below it among 123 (user 65 + pro 58); it caught 3 extra wrong pro arms. The collapsed/blurred poses it
 # targets measure 5-35 degrees, while the smallest correct elbow seen was ~50.
 ELBOW_ANGLE_FLOOR_DEG = 40.0
 MIN_NEIGHBOURS = 2
 TORSO_JOINTS = ("LEFT_SHOULDER", "RIGHT_SHOULDER", "LEFT_HIP", "RIGHT_HIP")
+
+
+def jump_threshold(event_index: int | None) -> float:
+    """Joint-jump threshold (torso lengths) for an event; the single threshold when the event is unknown."""
+    if event_index is None or not 0 <= event_index < len(JUMP_MEDIAN_BY_EVENT):
+        return JUMP_THRESHOLD
+    return max(JUMP_FLOOR, JUMP_K * JUMP_MEDIAN_BY_EVENT[event_index])
 
 
 def _mid(a: Joint, b: Joint) -> tuple[float, float]:
