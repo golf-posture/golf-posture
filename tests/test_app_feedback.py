@@ -6,10 +6,14 @@ from pathlib import Path
 import pytest
 
 from pipeline import generate_feedback_report as gfr
+import pipeline.app_feedback as app_feedback
 from pipeline.app_feedback import (
+    EVENT_WEIGHTS,
     MAX_ISSUES,
     MAX_PRAISE,
     build_app_payload,
+    item_score,
+    percentile_to_score,
     score_from_severity,
     status_from_score,
 )
@@ -21,7 +25,7 @@ MOTION = ["shoulder_turn_top", "xfactor_turn_top", "hip_turn_top", "weight_shift
 
 
 def _fb(grade="Excellent", z=0.2, reliability="high"):
-    return {"grade": grade, "z_score": z, "reliability": reliability, "value": 100.0, "pro_mean": 95.0}
+    return {"grade": grade, "z_score": z, "reliability": reliability, "value": 100.0, "pro_mean": 95.0, "pro_std": 5.0}
 
 
 def _data():
@@ -60,18 +64,34 @@ def _motion_problem(data, name, penalty, grade="Needs Improvement", direction="h
     return data
 
 
-def _dynamics(data, pair, feature, z, grade="Needs Improvement", reliability="high"):
+def _dynamics(data, pair, feature, z, grade="Needs Improvement", reliability="high", delta=12.0, pro=3.0):
     data["dynamics"].setdefault(pair, {"features": {}})["features"][feature] = {
-        "delta": 12.0, "pro_median_delta": 3.0, "robust_z": z, "grade": grade, "reliability": reliability}
+        "delta": delta, "pro_median_delta": pro, "robust_z": z, "grade": grade, "reliability": reliability}
     return data
 
 
 # ---- scoring -------------------------------------------------------------------------------------
-def test_score_and_status_rules():
-    assert [score_from_severity(z) for z in (0, 1, 2, 9)] == [100, 70, 40, 0]
-    assert status_from_score(39)["code"] == "priority"
-    assert status_from_score(40)["code"] == "adjust"
-    assert status_from_score(55)["code"] == "recheck"
+def test_item_score_is_piecewise_linear_through_the_anchor_points():
+    assert [item_score(z) for z in (0, 1, 2, 3, 4)] == [100, 85, 50, 15, 0]
+    assert item_score(0.5) == pytest.approx(92.5)
+    assert item_score(1.5) == pytest.approx(67.5)
+    assert item_score(-2.5) == pytest.approx(32.5)            # sign does not matter
+    assert item_score(9.0) == 0
+    assert score_from_severity(1.0) == 85                     # inside the pro range stays high
+
+
+def test_status_rules():
+    assert status_from_score(49)["code"] == "priority"
+    assert status_from_score(50)["code"] == "adjust"
+    assert status_from_score(67)["code"] == "adjust"
+    assert status_from_score(68)["code"] == "recheck"
+
+
+def test_combined_percentile_maps_onto_the_same_scale():
+    assert percentile_to_score(0) == pytest.approx(100)
+    assert percentile_to_score(68.27) == pytest.approx(85, abs=0.5)     # like |z| = 1
+    assert percentile_to_score(95.45) == pytest.approx(50, abs=0.5)     # like |z| = 2
+    assert percentile_to_score(99.99) < 15
 
 
 # ---- issue cards ---------------------------------------------------------------------------------
@@ -79,14 +99,30 @@ def test_angle_card_has_title_subtitle_detail_and_image_of_worst_event():
     payload = build_app_payload(_elbow_problem(_data()))
     assert payload["state"] == "issues"
     card = payload["issues"][0]
+    assert card["rank"] == 1
     assert card["title"] == "임팩트 팔꿈치 각도 차이"                 # "<problem event> <summary>", no direction
-    assert card["subtitle"] == "다운스윙~임팩트에서 양쪽 팔꿈치 각도가 프로와 달라요."
+    assert card["subtitle"] == "다운스윙~임팩트에서 양쪽 팔꿈치 각도가 프로와 달라요."   # the short line on the card face
     assert card["event"] == {"key": "Impact", "label": "임팩트"}
-    assert card["score"] == 22 and card["status"]["code"] == "priority"
+    assert card["score"] == score_from_severity(2.6) == 29 and card["status"]["code"] == "priority"
+    assert card["worst_item"] == {"kind": "angle", "event": {"key": "Impact", "label": "임팩트"},
+                                  "label": "타깃 쪽 팔꿈치 각도", "score": 29}
     assert card["media"]["keyframe"] == "frames/5.jpg"
-    kinds = [b["kind"] for b in card["body"]]
-    assert "advice" in kinds and "caution" in kinds                   # impact is a fast event
     assert card["sources"] == ["angle"]
+    assert payload["empty_state"] is None
+    # the long feedback shown under the photo once the card is opened
+    kinds = [b["kind"] for b in card["body"]]
+    assert kinds == ["score", "evidence", "direction", "also", "meaning", "advice",
+                     "check", "check", "drill", "drill", "drill", "goal", "caution"]
+    assert _texts(card, "score") == ["임팩트에서 타깃 쪽 팔꿈치 각도 점수가 29점으로 가장 낮아요."]
+    assert _texts(card, "evidence") == ["내 값은 100°, 프로 평균은 95°예요(프로는 보통 ±5° 이내)."]
+    assert _texts(card, "direction") == ["타깃 쪽 팔꿈치가 프로보다 더 펴져 있어요."]
+    also = _texts(card, "also")[0]
+    assert "임팩트 뒤쪽 팔꿈치" in also and "다운스윙 타깃 쪽 팔꿈치" in also
+    assert _texts(card, "meaning")[0].startswith("탑에서 임팩트까지는 팔이 가장 빠르게 움직이는 구간이라")
+    assert _texts(card, "check")[0] == "임팩트 직전에 팔이 너무 일찍 곧게 펴지지 않는지 확인해 보세요."
+    assert [b["step"] for b in card["body"] if b["kind"] == "drill"] == [1, 2, 3]
+    assert _texts(card, "drill")[1] == "클럽 없이 천천히 스윙하며 임팩트에서 멈추고, 팔꿈치에 약간 여유가 있는 모양인지 확인해요."
+    assert _texts(card, "goal") == ["다음 촬영에서는 먼저 68점 이상('한 번 더 확인' 단계)을 목표로 해 보세요. 85점 이상이면 프로 범위 안이에요."]
 
 
 def test_cards_are_sorted_by_score_lowest_first_and_ranks_are_sequential():
@@ -141,6 +177,10 @@ def test_dynamics_only_finding_becomes_a_card_with_both_event_images():
     assert card["event"]["key"] == "Top"
     assert card["subtitle"] == "어드레스에서 탑으로 가는 동안 상체 기울기 변화가 프로와 달라요."
     assert card["media"]["keyframes"] == ["frames/0.jpg", "frames/3.jpg"]
+    score = score_from_severity(2.7)
+    assert card["body"][0]["text"] == f"어드레스에서 탑으로 가는 동안 상체 기울기 변화 점수가 {score}점이에요."
+    assert card["body"][1]["text"] == "프로는 이 구간에서 보통 3° 정도 변하는데, 내 스윙은 12° 변했어요."
+    assert card["worst_item"]["kind"] == "dynamics" and card["worst_item"]["score"] == score
 
 
 def test_low_reliability_or_good_grade_dynamics_are_ignored():
@@ -168,7 +208,8 @@ def test_praise_cards_exist_and_never_contradict_an_issue():
 def test_tempo_and_posture_score():
     summary = build_app_payload(_data())["summary"]
     assert summary["tempo"]["text"] == "2.8 : 1" and summary["tempo"]["caption"] == "백스윙 : 다운스윙"
-    assert summary["posture_score"] == 10.0 and summary["posture_score_basis"] == "within_pro_ratio"
+    assert 95 <= summary["posture_score"] <= 100 and summary["posture_score_basis"] == "event_weighted_items"
+    assert summary["event_weights"] == EVENT_WEIGHTS
 
 
 def test_tempo_out_of_range_is_excluded_with_notice():
@@ -194,6 +235,250 @@ def test_events_for_the_full_swing_tab_link_to_issue_cards():
     assert rows["Address"]["issue_ids"] == []
 
 
+# ---- event scores, weights, reliability, combined ------------------------------------------------
+def _all_bad_at(data, event, z=3.0):
+    for f in FEATURES:
+        data["events"][event]["feedback"][f] = _fb("Needs Improvement", z)
+    return data
+
+
+def test_event_weights_make_an_impact_problem_cost_more_than_a_finish_problem():
+    impact = build_app_payload(_all_bad_at(_data(), "Impact"))["summary"]["posture_score"]
+    finish = build_app_payload(_all_bad_at(_data(), "Finish"))["summary"]["posture_score"]
+    assert impact < finish < build_app_payload(_data())["summary"]["posture_score"]
+
+
+def test_low_reliability_items_pull_an_event_score_less():
+    high, low = _data(), _data()
+    high["events"]["Address"]["feedback"]["spine_tilt"] = _fb("Needs Improvement", 3.0, "high")
+    low["events"]["Address"]["feedback"]["spine_tilt"] = _fb("Needs Improvement", 3.0, "low")
+    score = lambda d: {e["key"]: e for e in build_app_payload(d)["events"]}["Address"]["score"]["items"]
+    assert score(low) > score(high)
+
+
+def test_missing_items_are_left_out_not_scored_zero():
+    data = _data()
+    data["events"]["Finish"]["feedback"] = {f: {"grade": "unavailable", "z_score": None, "reliability": "low"}
+                                            for f in FEATURES}
+    payload = build_app_payload(data)
+    finish = {e["key"]: e for e in payload["events"]}["Finish"]
+    assert finish["score"]["items"] is None and finish["score"]["item_count"] == 0
+    assert payload["summary"]["posture_score"] >= 95                 # not dragged down by the missing event
+
+
+def test_motion_and_dynamics_items_belong_to_their_events():
+    data = _dynamics(_motion_problem(_data(), "weight_shift", 3.0), "Top->Mid-downswing", "spine_tilt", 3.0)
+    rows = {e["key"]: e for e in build_app_payload(data)["events"]}
+    assert rows["Impact"]["score"]["item_count"] == 5 + 4              # 5 angles + 4 motion metrics at impact
+    assert rows["Top"]["score"]["item_count"] == 5 + 3                 # 5 angles + 3 motion metrics at top
+    assert rows["Mid-downswing"]["score"]["item_count"] == 5 + 1       # 5 angles + the dynamics item ending here
+
+
+def test_combined_score_runs_in_parallel_with_the_item_based_score():
+    data = _data()
+    for name in EVENT_NAMES:
+        data["events"][name]["combined_score"] = {"deviation_percentile": 20.0}
+    data["events"]["Impact"]["combined_score"] = {"deviation_percentile": 99.0}
+    payload = build_app_payload(data)
+    impact = {e["key"]: e for e in payload["events"]}["Impact"]["score"]
+    assert impact["combined"] < 40 < impact["items"]                   # the two views can disagree
+    alt = payload["summary"]["posture_score_alt"]
+    assert alt["basis"] == "combined_mahalanobis" and alt["value"] < payload["summary"]["posture_score"] + 1
+
+
+def test_motion_card_sentences_give_score_evidence_and_advice():
+    card = build_app_payload(_motion_problem(_data(), "weight_shift", 3.0))["issues"][0]
+    kinds = [b["kind"] for b in card["body"]]
+    assert kinds[:2] == ["score", "evidence"]
+    assert card["body"][0]["text"] == "체중 이동 점수가 15점이에요."
+    assert card["body"][1]["text"] == "내 값은 0.34배, 프로는 대부분 0.5~1.5예요(중앙값 0.23배)."
+    assert card["worst_item"] == {"kind": "motion", "event": {"key": "Impact", "label": "임팩트"},
+                                  "label": "체중 이동", "score": 15}
+
+
+# ---- advice (richer, data-driven) -----------------------------------------------------------------
+def _texts(card, kind):
+    return [b["text"] for b in card["body"] if b["kind"] == kind]
+
+
+def test_bent_elbow_gets_the_opposite_direction_hint():
+    data = _data()
+    data["events"]["Impact"]["feedback"]["lead_elbow_angle"] = _fb("Needs Improvement", -2.6)
+    card = build_app_payload(data)["issues"][0]
+    assert _texts(card, "direction") == ["타깃 쪽 팔꿈치가 프로보다 더 굽혀져 있어요."]
+    assert _texts(card, "check")[0] == "임팩트 구간에서 팔이 접힌 채로 남아 있지 않은지 확인해 보세요."
+    assert "팔이 자연스럽게 뻗어 있는지" in _texts(card, "drill")[1]
+
+
+def test_spine_advice_follows_the_phase_and_never_names_a_direction():
+    data = _data()
+    data["events"]["Address"]["feedback"]["spine_tilt"] = _fb("Needs Improvement", 2.5)
+    card = build_app_payload(data)["issues"][0]
+    assert _texts(card, "direction") == []
+    assert _texts(card, "pattern") == ["어드레스 한 곳에서만 나타나요. 그 순간의 타이밍을 중심으로 확인해 보세요."]
+    assert _texts(card, "meaning") == ["어드레스의 상체 기울기는 스윙 내내 클럽을 휘두르는 기준선이 돼요."]
+    assert _texts(card, "advice") == ["거울이나 영상으로 준비 자세의 상체 라인을 프로와 나란히 비교해 보세요."]
+    assert _texts(card, "drill")[0] == "어드레스 자세를 정면에서 촬영해요."
+    late = _data()
+    late["events"]["Impact"]["feedback"]["spine_tilt"] = _fb("Needs Improvement", 2.5)
+    assert _texts(build_app_payload(late)["issues"][0], "advice")[0].startswith("스윙 중 상체 기울기가 어드레스 때와")
+
+
+def test_a_problem_that_repeats_is_described_as_a_swing_pattern():
+    data = _data()
+    for event in ("Address", "Top", "Impact"):
+        data["events"][event]["feedback"]["spine_tilt"] = _fb("Needs Improvement", 2.5)
+    card = build_app_payload(data)["issues"][0]
+    assert _texts(card, "pattern") == ["어드레스, 탑, 임팩트에서 반복돼요. 한 순간의 흔들림보다 스윙 흐름의 차이일 수 있어요."]
+
+
+def test_dynamics_advice_compares_sizes_and_never_prints_minus_zero():
+    small = _dynamics(_data(), "Mid-follow-through->Finish", "spine_tilt", 2.4, delta=-0.3, pro=-14.0)
+    card = build_app_payload(small)["issues"][0]
+    assert _texts(card, "evidence") == ["프로는 이 구간에서 보통 14° 정도 변하는데, 내 스윙은 거의 변하지 않았어요."]
+    assert "변화가 작아요" in _texts(card, "advice")[0]
+    assert _texts(card, "drill")[0] == "프로 영상의 팔로스루~피니시 구간을 0.5배속으로 반복해서 봐요."
+    assert card["stats"][0]["value_text"] == "0°"                      # -0.3 rounds to 0, not "-0°"
+    assert "-0°" not in json.dumps(build_app_payload(small), ensure_ascii=False)
+
+    big = _dynamics(_data(), "Top->Mid-downswing", "lead_elbow_angle", 2.4, delta=30.0, pro=8.0)
+    card = build_app_payload(big)["issues"][0]
+    assert _texts(card, "evidence") == ["프로는 이 구간에서 보통 8° 정도 변하는데, 내 스윙은 30° 변했어요."]
+    assert "프로보다 많이 변해요" in _texts(card, "advice")[0]
+
+
+def test_motion_cards_get_a_practice_tip_only_when_they_need_attention():
+    severe = build_app_payload(_motion_problem(_data(), "weight_shift", 3.0))["issues"][0]
+    assert _texts(severe, "advice") == ["몸이 옆으로 밀리는 것(스웨이)은 아닌지 확인해 보세요."]
+    assert _texts(severe, "drill")[1].startswith("오른쪽 골반 바깥에 벽이나 의자를")
+    mild = build_app_payload(_motion_problem(_data(), "weight_shift", 1.2))["issues"][0]
+    assert _texts(mild, "drill") == []                                  # "check once more" cards skip the drill ...
+    assert _texts(mild, "goal") and _texts(mild, "check")               # ... but still explain and set a goal
+
+
+def test_practice_tip_uses_the_trail_side_of_the_golfer():
+    data = _motion_problem(_data(), "weight_shift", 3.0)
+    data["handedness"] = "left"
+    assert _texts(build_app_payload(data)["issues"][0], "drill")[1].startswith("왼쪽 골반 바깥에")
+
+
+def test_empty_tip_falls_back_to_a_generic_hint():
+    card = build_app_payload(_motion_problem(_data(), "shoulder_turn_top", 2.6, direction="high"))["issues"][0]
+    assert _texts(card, "advice") == ["탑에서 클럽이 지면과 평행에 가까운지 영상으로 확인해 보세요. 너무 크게 돌아가지 않았는지 점검하면 좋아요."]
+
+
+def test_direction_hints_and_drills_can_be_switched_off(monkeypatch):
+    monkeypatch.setattr(app_feedback, "USE_DIRECTION_HINTS", False)
+    monkeypatch.setattr(app_feedback, "USE_DRILLS", False)
+    card = build_app_payload(_elbow_problem(_data()))["issues"][0]
+    kinds = [b["kind"] for b in card["body"]]
+    assert "direction" not in kinds and "drill" not in kinds
+    assert kinds.count("advice") == 1
+    motion = build_app_payload(_motion_problem(_data(), "weight_shift", 3.0))["issues"][0]
+    assert _texts(motion, "drill") == []
+
+
+def _praise(payload, key):
+    return next(c for c in payload["praise"] if c["id"] == key)
+
+
+def test_praise_body_explains_what_it_means_and_how_to_keep_it():
+    payload = build_app_payload(_data())
+    card = _praise(payload, "weight_shift")
+    kinds = [b["kind"] for b in card["body"]]
+    assert kinds == ["score", "evidence", "praise", "meaning", "keep"]
+    body = {b["kind"]: b["text"] for b in card["body"]}
+    assert body["score"].startswith("체중 이동 점수가") and "프로" in body["score"]
+    assert body["meaning"] == "체중이 알맞게 이동하면 임팩트에서 몸의 힘을 공으로 전달하기 쉬워요."
+    assert body["keep"] == "다운스윙에서 체중이 타깃 쪽으로 자연스럽게 옮겨가는 느낌을 기억해 두세요."   # not the generic line
+
+
+def test_every_praise_kind_has_its_own_keep_tip():
+    keys = set(app_feedback.PRAISE_MEANING)
+    assert keys == set(app_feedback.PRAISE_KEEP)
+    assert set(app_feedback.MOTION_UI) | {"tempo"} <= keys
+
+
+def test_score_level_wording_follows_the_score():
+    assert app_feedback._score_level(98).startswith("프로 중앙값과 거의")
+    assert app_feedback._score_level(92).startswith("프로 분포의 한가운데")
+    assert app_feedback._score_level(86).startswith("프로 범위 안에서")
+
+
+def test_stable_part_praise_names_the_best_and_weakest_event():
+    data = _data()
+    data["events"]["Impact"]["feedback"]["spine_tilt"] = _fb("Excellent", 0.9)      # still inside the pro range
+    data["events"]["Top"]["feedback"]["spine_tilt"] = _fb("Excellent", 0.0)
+    card = _praise(build_app_payload(data), "stable_spine")
+    detail = next(b["text"] for b in card["body"] if b["kind"] == "detail")
+    assert detail == f"가장 안정적인 구간은 탑(100점)이고, 가장 낮은 구간도 임팩트에서 {score_from_severity(0.9)}점이에요."
+    even = _praise(build_app_payload(_data()), "stable_spine")
+    assert next(b["text"] for b in even["body"] if b["kind"] == "detail").startswith("평가된 구간이")
+
+
+def test_praise_cautions_only_where_they_apply():
+    data = _data()
+    data["motion_metrics"]["shoulder_turn_top"].update({"robust_z": 1.4})            # "up": beyond the pro median
+    payload = build_app_payload(data)
+    assert any(b["kind"] == "caution" for b in _praise(payload, "shoulder_turn_top")["body"])
+    assert not any(b["kind"] == "caution" for b in _praise(payload, "weight_shift")["body"])
+    assert any(b["kind"] == "caution" for b in _praise(payload, "stable_hip_tilt")["body"])     # camera dependent
+    assert not any(b["kind"] == "caution" for b in _praise(payload, "stable_spine")["body"])
+
+
+def test_praise_tab_header_points_to_the_first_issue():
+    payload = build_app_payload(_elbow_problem(_data()))
+    header = payload["praise_header"]
+    assert header["title"] == "이번 스윙에서 잘한 점"
+    assert header["message"].startswith(f"잘한 점 {len(payload['praise'])}가지를 찾았어요.")
+    assert "'임팩트 팔꿈치 각도 차이'를 먼저 확인해 보세요." in header["message"]
+    clean = build_app_payload(_data())["praise_header"]["message"]
+    assert clean.endswith("이번 스윙에서는 교정할 항목이 발견되지 않았어요.")
+
+
+def test_no_praise_means_no_header():
+    data = _data()
+    for event in data["events"].values():
+        event["feedback"] = {f: _fb("Needs Improvement", 3.0) for f in FEATURES}
+    for name in MOTION:
+        _motion_problem(data, name, 3.0)
+    data["sequence_features"]["tempo_ratio"]["value"] = 39.0
+    payload = build_app_payload(data)
+    assert payload["praise"] == [] and payload["praise_header"] is None
+
+
+def test_object_particle_follows_the_last_syllable():
+    assert app_feedback._particle_eul("차이") == "를"
+    assert app_feedback._particle_eul("체중 이동") == "을"
+
+
+def test_praise_cards_are_part_of_the_payload():
+    payload = build_app_payload(_data())
+    assert payload["praise"], "a clean swing must produce praise cards"
+    assert all({"id", "title", "subtitle", "score", "event", "body", "media"} <= set(c) for c in payload["praise"])
+
+
+def test_praise_cards_carry_a_full_body_like_the_issue_cards():
+    cards = {c["id"]: c for c in build_app_payload(_data())["praise"]}
+    motion = cards["shoulder_turn_top"]
+    assert [b["kind"] for b in motion["body"]] == ["score", "evidence", "praise", "meaning", "keep"]
+    assert motion["body"][0]["text"].startswith(f"어깨 회전 점수가 {motion['score']}점으로,")
+    assert motion["body"][1]["text"].startswith("내 값은 1.0")
+    stable = cards["stable_spine"]
+    assert [b["kind"] for b in stable["body"]] == ["score", "evidence", "praise", "meaning", "detail", "keep"]
+    assert "모든 이벤트에서" in stable["body"][0]["text"]
+    tempo = cards["tempo"]
+    assert tempo["body"][0]["text"] == "내 리듬은 2.8 : 1, 프로 평균은 3.9 : 1이에요."
+    assert [b["kind"] for b in tempo["body"]] == ["evidence", "praise", "meaning", "detail", "keep"]
+
+
+def test_elbow_angle_can_be_praised_when_it_is_not_an_issue():
+    ids = {c["id"] for c in build_app_payload(_data())["praise"]}
+    assert "stable_elbow" in ids
+    ids = {c["id"] for c in build_app_payload(_elbow_problem(_data()))["praise"]}
+    assert "stable_elbow" not in ids                                  # an elbow issue and elbow praise never coexist
+
+
 # ---- contract & separation ----------------------------------------------------------------------
 def test_payload_is_strict_json_and_does_not_mutate_the_input():
     data = _dynamics(_elbow_problem(_data()), "Address->Top", "lead_elbow_angle", 1.5)
@@ -201,7 +486,7 @@ def test_payload_is_strict_json_and_does_not_mutate_the_input():
     payload = build_app_payload(data)
     json.dumps(payload, ensure_ascii=False, allow_nan=False)
     assert data == before
-    assert payload["schema_version"] == 2
+    assert payload["schema_version"] == 3
 
 
 def _analysis_file(tmp_path: Path, data: dict) -> Path:
@@ -233,3 +518,93 @@ def test_feedback_user_text_is_still_rendered_by_user_feedback_alone(tmp_path):
     paths = gfr.generate_feedback_report(_analysis_file(tmp_path, data), tmp_path / "out")
     expected = render_user_feedback_text(build_user_feedback(data))
     assert paths["feedback_user"].read_text(encoding="utf-8") == expected
+
+
+# ---- found in the first real run (test3) -------------------------------------------------------------
+def test_change_in_the_opposite_direction_is_named_for_the_elbow():
+    data = _dynamics(_data(), "Address->Toe-up", "lead_elbow_angle", 2.4, delta=13.0, pro=-10.0)
+    card = build_app_payload(data)["issues"][0]
+    assert _texts(card, "evidence") == ["프로는 이 구간에서 팔꿈치가 10° 굽혀지는데, 내 스윙은 13° 펴졌어요."]
+    assert "프로와 반대로 움직여요" in _texts(card, "advice")[0]
+    assert card["stats"][0]["value_text"] == "+13°" and card["stats"][0]["pro_text"] == "-10°"
+
+
+def test_opposite_direction_for_a_non_elbow_part_does_not_name_the_direction():
+    data = _dynamics(_data(), "Top->Mid-downswing", "spine_tilt", 2.4, delta=8.0, pro=-6.0)
+    card = build_app_payload(data)["issues"][0]
+    assert _texts(card, "evidence") == ["프로와 반대 방향으로 변했어요(프로 6°, 내 스윙 8°)."]
+    assert "펴" not in _texts(card, "evidence")[0] and "굽" not in _texts(card, "evidence")[0]
+
+
+def test_tiny_changes_are_not_called_opposite():
+    data = _dynamics(_data(), "Top->Mid-downswing", "spine_tilt", 2.4, delta=-0.3, pro=5.0)   # -0.3 vs +5: just "small"
+    card = build_app_payload(data)["issues"][0]
+    assert "반대" not in " ".join(b["text"] for b in card["body"])
+
+
+def test_card_image_is_the_card_event_and_keyframes_stay_chronological():
+    data = _dynamics(_data(), "Address->Top", "spine_tilt", 2.7)
+    card = build_app_payload(data)["issues"][0]
+    assert card["event"]["key"] == "Top"
+    assert card["media"]["keyframe"] == "frames/3.jpg"                 # the event named in the title, not the start
+    assert card["media"]["skeleton_compare"] == "skeletons/3.jpg"
+    assert card["media"]["keyframes"] == ["frames/0.jpg", "frames/3.jpg"]
+
+
+# ---- four-part long feedback: why it matters / what to check / step-by-step practice / goal ----------
+def test_card_face_stays_short_and_the_long_feedback_lives_in_body():
+    card = build_app_payload(_elbow_problem(_data()))["issues"][0]
+    assert {"title", "subtitle", "score", "status"} <= set(card)
+    assert len(card["subtitle"]) <= 45                                   # one line on the card
+    assert card["subtitle"] not in _texts(card, "advice")
+    assert len(" ".join(b["text"] for b in card["body"])) > 400          # the opened card is long
+
+
+def test_every_card_type_has_meaning_checks_steps_and_a_goal():
+    data = _elbow_problem(_data())
+    _motion_problem(data, "weight_shift", 2.4)
+    _dynamics(data, "Address->Toe-up", "lead_elbow_angle", 2.4, delta=13.0, pro=-10.0)
+    data["events"]["Address"]["feedback"]["spine_tilt"] = _fb("Needs Improvement", 2.5)
+    cards = build_app_payload(data)["issues"]
+    assert {c["sources"][0] for c in cards} >= {"angle", "motion"}       # angle, motion and dynamics all appear
+    assert {"elbow", "spine", "weight_shift"} <= {c["id"] for c in cards} or len(cards) == 5
+    for card in cards:
+        kinds = [b["kind"] for b in card["body"]]
+        assert kinds.count("meaning") == 1 and kinds.count("goal") == 1, card["id"]
+        assert 2 <= kinds.count("check") <= 3, card["id"]
+        assert [b["step"] for b in card["body"] if b["kind"] == "drill"] == [1, 2, 3], card["id"]
+
+
+def test_goal_follows_the_score_band():
+    severe = build_app_payload(_motion_problem(_data(), "head_movement", 3.0))["issues"][0]
+    assert _texts(severe, "goal")[0].startswith("다음 촬영에서는 먼저 68점 이상('한 번 더 확인' 단계)을 목표로")
+    middle = build_app_payload(_motion_problem(_data(), "head_movement", 2.0, direction="high"))["issues"][0]
+    assert middle["score"] == 50 and _texts(middle, "goal")[0].startswith("다음 촬영에서는 85점 이상(프로 범위 안)을 목표로")
+    mild = build_app_payload(_motion_problem(_data(), "head_movement", 1.2))["issues"][0]
+    assert _texts(mild, "goal")[0].startswith("프로 범위에 가까워요.")
+
+
+def test_motion_goal_names_the_pro_range():
+    card = build_app_payload(_motion_problem(_data(), "weight_shift", 3.0))["issues"][0]
+    assert "프로 대부분 범위(0.5~1.5) 안이 기준이에요." in _texts(card, "goal")[0]
+
+
+def test_detailed_advice_can_be_switched_off(monkeypatch):
+    monkeypatch.setattr(app_feedback, "USE_DETAILED_ADVICE", False)
+    card = build_app_payload(_elbow_problem(_data()))["issues"][0]
+    kinds = {b["kind"] for b in card["body"]}
+    assert not ({"meaning", "check", "goal"} & kinds)
+    assert {"score", "evidence", "advice", "drill"} <= kinds             # the shorter version still works
+
+
+def test_dynamics_only_cards_have_the_four_parts_too():
+    for pair, feature, delta, pro in (("Mid-follow-through->Finish", "spine_tilt", -0.3, -14.0),
+                                      ("Address->Toe-up", "lead_elbow_angle", 13.0, -10.0),
+                                      ("Top->Mid-downswing", "lead_elbow_angle", 30.0, 8.0)):
+        card = build_app_payload(_dynamics(_data(), pair, feature, 2.4, delta=delta, pro=pro))["issues"][0]
+        assert card["sources"] == ["dynamics"]
+        kinds = [b["kind"] for b in card["body"]]
+        assert kinds.count("meaning") == 1 and kinds.count("goal") == 1, pair
+        assert 2 <= kinds.count("check") <= 3, pair
+        assert [b["step"] for b in card["body"] if b["kind"] == "drill"] == [1, 2, 3], pair
+
