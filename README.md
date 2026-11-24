@@ -224,6 +224,7 @@ pixi run --locked python -m pipeline.run_analysis --video $video --event-refinem
 | `pipeline/video_io.py` | 영상 프레임 읽기 |
 | `pipeline/user_tracking.py`, `pose_tracking.py` | 사용자/기준 영상의 연속 자세 추적과 관절 값 복구 |
 | `pipeline/qc_tracked_features.py`, `qc_temporal.py` | 관절 관측 품질과 시간축 QC |
+| `pipeline/pose_benchmark.py`, `pose_crop.py`, `pose_review.py` | 손 라벨 기준 포즈 좌표 정확도 벤치마크, 골퍼 crop, 실패 팔 검토 갤러리 ([docs/pose_benchmark.md](docs/pose_benchmark.md)) |
 | `pipeline/motion_metrics.py` | 관절 기반 동작 지표 계산·평가 |
 | `pipeline/generate_feedback_report.py`, `user_feedback.py` | 표·상세 피드백·일반 사용자 피드백 |
 | `pipeline/models/swingnet_phase_ranker_v1.json` | Git에 포함한 고정 후보정 모델 |
@@ -244,6 +245,9 @@ pixi run --locked python -m pipeline.run_analysis --video $video --event-refinem
 | `data/pro_sequence_stats.json` | 스윙 전체 템포 통계 |
 | `data/pro_motion_stats.json` | 관절 기반 동작 지표 통계 |
 | `data/pro_reference_skeletons.json` | 이벤트별 대표 프로 스켈레톤 |
+| `data/refined/` | `--reference refined`용 기준 통계(신뢰도·공분산·동역학). 프로 영상을 ViTPose-H/YOLOv8x 팔 관절로 다시 잰 값 |
+
+`--pose-refiner golfpose`는 이벤트 주변의 팔 관절(어깨·팔꿈치·손목)만 ViTPose-H(Finish는 YOLOv8x)로 바꿔 정확도를 높이는 선택 기능입니다(기본 꺼짐, 서버용, 모델 파일은 Git 제외). 새 모델과 함께 쓸 때는 `--reference refined`를 같이 주는 것을 전제로 만들었습니다. 측정 근거, QC 재보정, 통계 재생성 순서는 [docs/pose_benchmark.md](docs/pose_benchmark.md), 서버 의존성(패키지, 모델 파일, 라이선스)은 [docs/server_dependencies.md](docs/server_dependencies.md), ViTPose-H 실행은 [docs/vitpose_server.md](docs/vitpose_server.md)에 있습니다. Top/Finish 좌우 보정(`side_correction`)은 분석에서 더 이상 쓰지 않습니다.
 
 영상, 대형 가중치, `output/`·`outputs/`, raw CSV, 개인 실험·학습 자료는 Git에 포함하지 않습니다. 과거의 `event_detection/train.py`, `event_detection/eval.py`, `event_detection/data/`, `pose_analysis/`, `golf_yb_yolopose/` 등은 현재 배포하는 실행 파일 목록에 포함되지 않습니다. 로컬에 남아 있더라도 일반 분석의 필수 파일은 아닙니다.
 

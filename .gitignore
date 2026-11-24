@@ -91,3 +91,24 @@ pose_analysis/
 pipeline/diagnose_reliability_stats.py
 data/pro_feature_raw.csv
 data/pro_feature_stats_reliability.csv
+data/refined/*.csv
+# Pose-accuracy measurement, distillation experiments and shadow comparison (docs/pose_benchmark.md):
+# not needed to run an analysis. The runtime pieces (pose_refiner, pose_source, vitpose_runtime, ...) are tracked.
+pipeline/pose_benchmark.py
+pipeline/pose_crop.py
+pipeline/pose_review.py
+pipeline/golfpose_boxes.py
+pipeline/golfpose_infer.py
+pipeline/pseudo_boxes.py
+pipeline/pseudo_dataset.py
+pipeline/student_infer.py
+pipeline/student_joints.py
+pipeline/qc_disagreement.py
+pipeline/qc_refined_eval.py
+pipeline/qc_refined_report.py
+pipeline/shadow_compare.py
+tests/test_pose_benchmark.py
+tests/test_pose_crop.py
+tests/test_pose_review.py
+tests/test_pseudo_dataset.py
+tests/test_student_joints.py
