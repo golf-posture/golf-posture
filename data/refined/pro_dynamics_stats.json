@@ -1,0 +1,438 @@
+{
+  "metadata": {
+    "source": "data/pro_feature_raw.csv",
+    "features": [
+      "trail_elbow_angle",
+      "lead_elbow_angle",
+      "shoulder_tilt",
+      "hip_tilt",
+      "spine_tilt"
+    ],
+    "circular_features": [
+      "hip_tilt",
+      "shoulder_tilt"
+    ],
+    "event_names": [
+      "Address",
+      "Toe-up",
+      "Mid-backswing",
+      "Top",
+      "Mid-downswing",
+      "Impact",
+      "Mid-follow-through",
+      "Finish"
+    ],
+    "total_videos": 342,
+    "min_samples_for_stats": 30,
+    "delta_rule": "linear features: end - start; circular features: circular_delta(end, start).",
+    "robust_stats_rule": "median/MAD (scaled by 1.4826), not mean/std -- see v2 week1/2 outlier findings."
+  },
+  "pairs": {
+    "Address->Toe-up": {
+      "start_event": "Address",
+      "end_event": "Toe-up",
+      "start_event_index": 0,
+      "end_event_index": 1,
+      "features": {
+        "trail_elbow_angle": {
+          "median": 0.6851110925641137,
+          "mad": 5.413960924695246,
+          "scaled_mad": 8.026738466953171,
+          "n": 340,
+          "detection_rate": 0.9941520467836257,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
+        },
+        "lead_elbow_angle": {
+          "median": -2.207321447259659,
+          "mad": 4.228648925499726,
+          "scaled_mad": 6.269394896945894,
+          "n": 337,
+          "detection_rate": 0.9853801169590644,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
+        },
+        "shoulder_tilt": {
+          "median": -29.061891816489947,
+          "mad": 6.3657696620107345,
+          "scaled_mad": 9.437890100897114,
+          "n": 336,
+          "detection_rate": 0.9824561403508771,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
+        },
+        "hip_tilt": {
+          "median": -3.108706536088903,
+          "mad": 1.8954870081682316,
+          "scaled_mad": 2.81024903831022,
+          "n": 337,
+          "detection_rate": 0.9853801169590644,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
+        },
+        "spine_tilt": {
+          "median": 0.8976221802144959,
+          "mad": 1.8762028689201253,
+          "scaled_mad": 2.781658373460978,
+          "n": 339,
+          "detection_rate": 0.9912280701754386,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
+        }
+      }
+    },
+    "Toe-up->Mid-backswing": {
+      "start_event": "Toe-up",
+      "end_event": "Mid-backswing",
+      "start_event_index": 1,
+      "end_event_index": 2,
+      "features": {
+        "trail_elbow_angle": {
+          "median": -30.179817126588603,
+          "mad": 7.9669596084973335,
+          "scaled_mad": 11.811814315558147,
+          "n": 336,
+          "detection_rate": 0.9824561403508771,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
+        },
+        "lead_elbow_angle": {
+          "median": -12.550340891554015,
+          "mad": 4.095782754358808,
+          "scaled_mad": 6.072407511612369,
+          "n": 334,
+          "detection_rate": 0.9766081871345029,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
+        },
+        "shoulder_tilt": {
+          "median": -20.317311808558884,
+          "mad": 10.300618269957113,
+          "scaled_mad": 15.271696647038414,
+          "n": 326,
+          "detection_rate": 0.9532163742690059,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
+        },
+        "hip_tilt": {
+          "median": -1.1365460688637654,
+          "mad": 1.2679401094642913,
+          "scaled_mad": 1.8798480062917582,
+          "n": 332,
+          "detection_rate": 0.9707602339181286,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
+        },
+        "spine_tilt": {
+          "median": 0.019634961117357186,
+          "mad": 1.17499193676554,
+          "scaled_mad": 1.7420430454485893,
+          "n": 336,
+          "detection_rate": 0.9824561403508771,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
+        }
+      }
+    },
+    "Mid-backswing->Top": {
+      "start_event": "Mid-backswing",
+      "end_event": "Top",
+      "start_event_index": 2,
+      "end_event_index": 3,
+      "features": {
+        "trail_elbow_angle": {
+          "median": -26.964569017021745,
+          "mad": 11.821777893888957,
+          "scaled_mad": 17.526967905479765,
+          "n": 326,
+          "detection_rate": 0.9532163742690059,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
+        },
+        "lead_elbow_angle": {
+          "median": -26.610505589574615,
+          "mad": 10.16707399315088,
+          "scaled_mad": 15.073703902245493,
+          "n": 318,
+          "detection_rate": 0.9298245614035088,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
+        },
+        "shoulder_tilt": {
+          "median": -91.63859604515936,
+          "mad": 50.2475020319153,
+          "scaled_mad": 74.49694651251762,
+          "n": 322,
+          "detection_rate": 0.9415204678362573,
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate"
+        },
+        "hip_tilt": {
+          "median": 1.453685070917146,
+          "mad": 1.468652740387185,
+          "scaled_mad": 2.1774245528980405,
+          "n": 322,
+          "detection_rate": 0.9415204678362573,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
+        },
+        "spine_tilt": {
+          "median": 0.20958835966034606,
+          "mad": 1.8459010923303278,
+          "scaled_mad": 2.736732959488944,
+          "n": 334,
+          "detection_rate": 0.9766081871345029,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
+        }
+      }
+    },
+    "Top->Mid-downswing": {
+      "start_event": "Top",
+      "end_event": "Mid-downswing",
+      "start_event_index": 3,
+      "end_event_index": 4,
+      "features": {
+        "trail_elbow_angle": {
+          "median": 8.774730257713927,
+          "mad": 16.353766594513715,
+          "scaled_mad": 24.24609435302603,
+          "n": 329,
+          "detection_rate": 0.9619883040935673,
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate"
+        },
+        "lead_elbow_angle": {
+          "median": 21.871923361883987,
+          "mad": 10.1404138231119,
+          "scaled_mad": 15.034177534145702,
+          "n": 320,
+          "detection_rate": 0.935672514619883,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
+        },
+        "shoulder_tilt": {
+          "median": 125.7895773839636,
+          "mad": 44.58138482033792,
+          "scaled_mad": 66.09636113463299,
+          "n": 333,
+          "detection_rate": 0.9736842105263158,
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate"
+        },
+        "hip_tilt": {
+          "median": -0.597761592461012,
+          "mad": 1.806090698486031,
+          "scaled_mad": 2.6777100695753893,
+          "n": 327,
+          "detection_rate": 0.956140350877193,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
+        },
+        "spine_tilt": {
+          "median": -0.17378388301173775,
+          "mad": 2.07376417285045,
+          "scaled_mad": 3.0745627626680774,
+          "n": 336,
+          "detection_rate": 0.9824561403508771,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
+        }
+      }
+    },
+    "Mid-downswing->Impact": {
+      "start_event": "Mid-downswing",
+      "end_event": "Impact",
+      "start_event_index": 4,
+      "end_event_index": 5,
+      "features": {
+        "trail_elbow_angle": {
+          "median": 36.18719545104602,
+          "mad": 12.456613375938502,
+          "scaled_mad": 18.46817499116642,
+          "n": 337,
+          "detection_rate": 0.9853801169590644,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
+        },
+        "lead_elbow_angle": {
+          "median": 12.695357388416156,
+          "mad": 6.5106498065029825,
+          "scaled_mad": 9.652689403121322,
+          "n": 328,
+          "detection_rate": 0.9590643274853801,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
+        },
+        "shoulder_tilt": {
+          "median": 40.76968643874497,
+          "mad": 7.2676814815837645,
+          "scaled_mad": 10.77506456459609,
+          "n": 328,
+          "detection_rate": 0.9590643274853801,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
+        },
+        "hip_tilt": {
+          "median": 6.693354740722839,
+          "mad": 2.167705655878649,
+          "scaled_mad": 3.213840405405685,
+          "n": 327,
+          "detection_rate": 0.956140350877193,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
+        },
+        "spine_tilt": {
+          "median": 11.89601123436735,
+          "mad": 2.6184633985401833,
+          "scaled_mad": 3.8821338346756757,
+          "n": 334,
+          "detection_rate": 0.9766081871345029,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
+        }
+      }
+    },
+    "Impact->Mid-follow-through": {
+      "start_event": "Impact",
+      "end_event": "Mid-follow-through",
+      "start_event_index": 5,
+      "end_event_index": 6,
+      "features": {
+        "trail_elbow_angle": {
+          "median": 12.91347978330296,
+          "mad": 7.149547364796788,
+          "scaled_mad": 10.599918923047717,
+          "n": 330,
+          "detection_rate": 0.9649122807017544,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
+        },
+        "lead_elbow_angle": {
+          "median": 7.423643160603717,
+          "mad": 6.243710594892519,
+          "scaled_mad": 9.256925327987648,
+          "n": 331,
+          "detection_rate": 0.9678362573099415,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
+        },
+        "shoulder_tilt": {
+          "median": 30.603184072450404,
+          "mad": 7.737930523665796,
+          "scaled_mad": 11.472255794386909,
+          "n": 323,
+          "detection_rate": 0.9444444444444444,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
+        },
+        "hip_tilt": {
+          "median": 1.4948131341437545,
+          "mad": 2.0387398096345066,
+          "scaled_mad": 3.0226356417641194,
+          "n": 325,
+          "detection_rate": 0.9502923976608187,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
+        },
+        "spine_tilt": {
+          "median": 3.308015161701281,
+          "mad": 2.16046344402643,
+          "scaled_mad": 3.2031031021135847,
+          "n": 329,
+          "detection_rate": 0.9619883040935673,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
+        }
+      }
+    },
+    "Mid-follow-through->Finish": {
+      "start_event": "Mid-follow-through",
+      "end_event": "Finish",
+      "start_event_index": 6,
+      "end_event_index": 7,
+      "features": {
+        "trail_elbow_angle": {
+          "median": -27.2297961041036,
+          "mad": 25.78764261946563,
+          "scaled_mad": 38.232758947619736,
+          "n": 333,
+          "detection_rate": 0.9736842105263158,
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate"
+        },
+        "lead_elbow_angle": {
+          "median": -105.46113861995255,
+          "mad": 15.630872272007714,
+          "scaled_mad": 23.174331230478636,
+          "n": 328,
+          "detection_rate": 0.9590643274853801,
+          "reliability": "low",
+          "feedback_strength": "reference",
+          "reliability_reason": "high dispersion or low detection rate"
+        },
+        "shoulder_tilt": {
+          "median": 115.98391199207316,
+          "mad": 10.500189365436313,
+          "scaled_mad": 15.567580753195877,
+          "n": 326,
+          "detection_rate": 0.9532163742690059,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
+        },
+        "hip_tilt": {
+          "median": -8.862643059049788,
+          "mad": 7.255459012863412,
+          "scaled_mad": 10.756943532471293,
+          "n": 337,
+          "detection_rate": 0.9853801169590644,
+          "reliability": "medium",
+          "feedback_strength": "normal",
+          "reliability_reason": "moderate dispersion or detection rate"
+        },
+        "spine_tilt": {
+          "median": -15.46563929726717,
+          "mad": 3.66813727647569,
+          "scaled_mad": 5.438380326102858,
+          "n": 329,
+          "detection_rate": 0.9619883040935673,
+          "reliability": "high",
+          "feedback_strength": "strong",
+          "reliability_reason": "low dispersion and high detection rate"
+        }
+      }
+    }
+  }
+}

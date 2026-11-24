@@ -51,6 +51,69 @@ class TestArmGeometry:
         assert all(value is None for value in geometry.values())
 
 
+class TestProcessVideoAt:
+    EVENTS = [10, 20, 30, 40, 50, 60, 70, 80]
+
+    @pytest.fixture(autouse=True)
+    def fake_tracking(self, monkeypatch):
+        from pipeline import extract_pro_features_tracked as module
+
+        monkeypatch.setattr(module, "video_frame_count", lambda path: 200)
+        monkeypatch.setattr(module, "video_size", lambda path: FRAME_SIZE)
+        monkeypatch.setattr(module, "extract_tracked_frames", lambda path, last: [_frame() for _ in range(last + 1)])
+
+    class Source:
+        def __init__(self, answer):
+            self.answer = answer
+
+        def joints(self, video_path, requests):
+            return {frame: self.answer for frame in requests}
+
+    def test_without_a_source_nothing_is_refined(self):
+        from pathlib import Path
+
+        from pipeline.extract_pro_features_tracked import process_video_at
+
+        rows = process_video_at(Path("8.mp4"), 8, self.EVENTS, "right")
+
+        assert [row["refined"] for row in rows] == [False] * 8
+
+    def test_with_a_source_the_event_rows_use_its_joints(self):
+        from pathlib import Path
+
+        from pipeline.extract_pro_features_tracked import process_video_at
+
+        straight = {"RIGHT_SHOULDER": (30.0, 20.0, 0.8), "RIGHT_ELBOW": (30.0, 40.0, 0.8), "RIGHT_WRIST": (30.0, 60.0, 0.8)}
+
+        rows = process_video_at(Path("8.mp4"), 8, self.EVENTS, "right", self.Source(straight))
+
+        assert [row["refined"] for row in rows] == [True] * 8
+        assert rows[3]["trail_elbow_angle_2d"] == pytest.approx(180.0)
+        assert rows[3]["trail_elbow_angle_3d"] == pytest.approx(90.0)  # MediaPipe's 3D is kept
+
+    def test_a_source_that_fails_fails_the_video(self):
+        from pathlib import Path
+
+        from pipeline.extract_pro_features_tracked import process_video_at
+
+        class Broken:
+            def joints(self, video_path, requests):
+                raise OSError("no gpu")
+
+        with pytest.raises(RuntimeError, match="failed"):
+            process_video_at(Path("8.mp4"), 8, self.EVENTS, "right", Broken())
+
+    def test_table_events_keeps_only_videos_with_all_eight_events(self, tmp_path):
+        from pipeline.extract_pro_features_tracked import table_events
+
+        lines = ["video_id,event_index,frame_index"]
+        lines += [f"8,{event},{10 * event}" for event in range(8)] + [f"9,{event},{event}" for event in range(7)]
+        table = tmp_path / "t.csv"
+        table.write_text("\n".join(lines), encoding="utf-8")
+
+        assert table_events(table) == {8: [0, 10, 20, 30, 40, 50, 60, 70]}
+
+
 class TestInFrame:
     def test_inside(self):
         assert in_frame((10.0, 10.0), FRAME_SIZE) is True
@@ -75,6 +138,14 @@ class TestBuildVideoRows:
         rows = self._rows([_frame()], [0])
 
         assert set(rows[0]) == set(FIELDNAMES)
+
+    def test_refined_column_marks_the_events_the_refiner_measured(self):
+        rows = build_video_rows(7, [_frame(), _frame()], [0, 1], FRAME_SIZE, "right", refined_frames=frozenset({1}))
+
+        assert [row["refined"] for row in rows] == [False, True]
+
+    def test_refined_column_defaults_to_false(self):
+        assert self._rows([_frame()], [0])[0]["refined"] is False
 
     def test_direct_row_records_2d_and_3d_elbow_angles(self):
         row = self._rows([_frame()], [0])[0]

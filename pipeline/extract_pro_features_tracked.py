@@ -21,6 +21,9 @@ from typing import Any, Sequence
 import cv2
 
 from pipeline.extract_pro_features import read_labels
+from pipeline.pose_refiner import PoseSource, refine_frames
+from pipeline.pseudo_label import load_event_frames
+from pipeline.refiner_cache import CachedSource
 from pipeline.pose_tracking import (
     HALF_WINDOW,
     MAX_GAP,
@@ -42,7 +45,7 @@ ARMS = ("trail", "lead")
 QC_SUFFIXES = ("min_vis", "upper_2d", "fore_2d", "upper_3d", "fore_3d", "in_frame")
 
 FIELDNAMES = [
-    "video_id", "event_index", "event_name", "frame_index", "pose_detected",
+    "video_id", "event_index", "event_name", "frame_index", "pose_detected", "refined",
     *[f"{arm}_elbow_{suffix}" for arm in ARMS for suffix in ("angle_2d", "angle_3d", "source")],
     *TILT_FEATURES,
     *[f"{arm}_{suffix}" for arm in ARMS for suffix in QC_SUFFIXES],
@@ -95,7 +98,9 @@ def build_video_rows(
     frame_indices: Sequence[int],
     frame_size: tuple[int, int],
     handedness: str,
+    refined_frames: frozenset[int] = frozenset(),
 ) -> list[dict[str, Any]]:
+    """One row per event. `refined_frames` are the frames whose arm joints came from the pose refiner."""
     arms = arm_by_feature(handedness)
     arm_for = {"trail": arms["trail_elbow_angle"], "lead": arms["lead_elbow_angle"]}
     series = {
@@ -112,6 +117,7 @@ def build_video_rows(
             "event_name": EVENT_NAMES[event_index],
             "frame_index": frame_index,
             "pose_detected": frame is not None,
+            "refined": frame_index in refined_frames,
             "frame_w": frame_size[0],
             "frame_h": frame_size[1],
             **_tilts(frame, handedness),
@@ -135,6 +141,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", default="data/pro_feature_raw_tracked.csv")
     parser.add_argument("--handedness", choices=["right", "left"], default="right")
     parser.add_argument("--limit", type=int, help="Only process the first N videos (smoke test).")
+    parser.add_argument("--events-table", help="Take event frames from this table (video_id, event_index, "
+                        "frame_index) instead of --labels, e.g. the previous data/pro_feature_raw_tracked.csv.")
+    parser.add_argument("--refiner-cache", help="Replace arm joints around the events with the answers in this "
+                        "pipeline.refiner_cache file (needs --events-table).")
     return parser.parse_args()
 
 
@@ -145,11 +155,37 @@ def video_size(video_path: Path) -> tuple[int, int]:
     return size
 
 
-def process_video(video_path: Path, video_id: int, raw_events: list[int], handedness: str) -> list[dict[str, Any]]:
-    indices = event_frames(raw_events)[: len(EVENT_NAMES)]
+def process_video_at(
+    video_path: Path,
+    video_id: int,
+    indices: list[int],
+    handedness: str,
+    source: PoseSource | None = None,
+) -> list[dict[str, Any]]:
+    """Rows of one video at the given event frames; with a `source`, arm joints around the events are refined."""
     last = min(max(indices) + HALF_WINDOW + MAX_GAP, max(0, video_frame_count(video_path) - 1))
     frames = extract_tracked_frames(video_path, last)
-    return build_video_rows(video_id, frames, indices, video_size(video_path), handedness)
+    refined: frozenset[int] = frozenset()
+    if source is not None:
+        result = refine_frames(frames, 0, video_path, dict(enumerate(indices)), source)
+        if result.status != "ok":
+            raise RuntimeError(f"pose refiner {result.status}")
+        frames, refined = result.frames, result.refined_frames
+    return build_video_rows(video_id, frames, indices, video_size(video_path), handedness, refined)
+
+
+def process_video(video_path: Path, video_id: int, raw_events: list[int], handedness: str) -> list[dict[str, Any]]:
+    return process_video_at(video_path, video_id, event_frames(raw_events)[: len(EVENT_NAMES)], handedness)
+
+
+def table_events(table: Path) -> dict[int, list[int]]:
+    """{video id: the 8 event frames in order} from a previous extraction's table; incomplete videos are left out."""
+    by_video = load_event_frames(table)
+    return {
+        int(video): [events[event] for event in range(len(EVENT_NAMES))]
+        for video, events in by_video.items()
+        if all(event in events for event in range(len(EVENT_NAMES)))
+    }
 
 
 def main() -> int:
@@ -158,8 +194,16 @@ def main() -> int:
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
 
-    labels = read_labels(labels_path)
-    video_ids = sorted(int(p.stem) for p in videos_dir.glob("*.mp4") if p.stem.isdigit() and int(p.stem) in labels)
+    if args.refiner_cache and not args.events_table:
+        raise SystemExit("--refiner-cache needs --events-table (the cache holds answers for those event frames)")
+    source = CachedSource.load(Path(args.refiner_cache)) if args.refiner_cache else None
+    if args.events_table:
+        events = table_events(Path(args.events_table))
+        video_ids = sorted(video for video in events if (videos_dir / f"{video}.mp4").exists())
+        labels: dict[int, Any] = {}
+    else:
+        labels = read_labels(labels_path)
+        video_ids = sorted(int(p.stem) for p in videos_dir.glob("*.mp4") if p.stem.isdigit() and int(p.stem) in labels)
     if args.limit is not None:
         video_ids = video_ids[: args.limit]
 
@@ -169,7 +213,11 @@ def main() -> int:
         writer.writeheader()
         for done, video_id in enumerate(video_ids, start=1):
             try:
-                rows = process_video(videos_dir / f"{video_id}.mp4", video_id, labels[video_id], args.handedness)
+                path = videos_dir / f"{video_id}.mp4"
+                if args.events_table:
+                    rows = process_video_at(path, video_id, events[video_id], args.handedness, source)
+                else:
+                    rows = process_video(path, video_id, labels[video_id], args.handedness)
             except Exception as exc:  # keep going; failed videos are reported, not silently dropped
                 print(f"video {video_id} failed: {type(exc).__name__}: {exc}", file=sys.stderr)
                 failures.append(video_id)
