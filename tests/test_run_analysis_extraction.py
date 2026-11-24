@@ -30,6 +30,11 @@ class TestResolveStatsPath:
     def test_legacy_reference_lives_in_data_directory(self):
         assert resolve_stats_path(None, "legacy", "pro_dynamics_stats.json") == Path("data/pro_dynamics_stats.json")
 
+    def test_refined_reference_lives_in_refined_directory(self):
+        assert resolve_stats_path(None, "refined", "pro_dynamics_stats.json") == Path(
+            "data/refined/pro_dynamics_stats.json"
+        )
+
     def test_tracked_reference_lives_in_tracked_directory(self):
         assert resolve_stats_path(None, "tracked", "pro_dynamics_stats.json") == Path(
             "data/tracked/pro_dynamics_stats.json"
