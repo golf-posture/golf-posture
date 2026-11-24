@@ -51,6 +51,18 @@
 | `outputs/golfpose/vitpose_huge.ts` | 2.55GB | ViTPose-H(TorchScript) | 개발 PC에서 만든 파일을 서버에 복사. 만드는 법은 [`vitpose_server.md`](vitpose_server.md)와 `pipeline/vitpose_export.py`(mmpose 환경에서 한 번만) |
 | `event_detection/models/mobilenet_v2.pth.tar` | 14MB | SwingNet 학습 때만 | **운영에 필요 없음** |
 
+### 체크섬 (2026-11-24, 개발 PC 기준)
+
+받은 파일이 온전한지 서버에서 `sha256sum <파일>`(Windows는 `Get-FileHash <파일>`)로 계산해 비교하세요. 바이트 수도 같이 적습니다.
+
+| 파일 | 바이트 | SHA256 |
+|---|---|---|
+| `vitpose_huge.ts` | 2,549,838,458 | `cb13e88b854538a54c374d57033d83a435c16c3115fe87f7ee172235264a6dd7` |
+| `swingnet_1800.pth.tar` | 63,280,059 | `6331e303a9e86d0c19f183899f958bf2a71cf5a7070d46899e25e1ac877b23d4` |
+| `yolov8x-pose.pt` | 139,420,105 | `7a9bf952c2fc1c07d4a1da00dbb4cfab5ed71f89cbe8824d51a8f7a61cee5825` |
+
+`yolov8x-pose.pt`는 ultralytics가 자동으로 내려받는 파일이라 ultralytics 버전에 따라 새 버전이 받아질 수 있고, 그러면 값이 다를 수 있습니다. 값이 달라도 모델이 정상 동작하면 문제는 아니며, 동일 결과가 필요하면 위 값의 파일을 직접 전달해 쓰세요. `vitpose_huge.ts`를 다시 내보내면(체크포인트 변경 등) 값이 바뀌므로 이 표도 갱신해야 합니다.
+
 다른 경로에 두면 `--checkpoint`, `--vitpose-model`로 지정합니다. `yolov8x-pose.pt`의 경로는 `pipeline/golfer_detection.py`의 `YOLO_DEFAULT_WEIGHTS`(저장소 루트 기준 상대 경로)입니다.
 
 ## 3. 기준 데이터 (Git에 포함)
