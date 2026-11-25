@@ -77,7 +77,8 @@ def load_model(checkpoint, device):
 
 
 def detect_swingnet_events(video_path: Path, checkpoint_path: Path, seq_length: int,
-                           selection: str = "ordered", missing_events=()):
+                           selection: str = "ordered", missing_events=(), *,
+                           on_progress=None, check_cancelled=None):
     """Score consecutive windows without retaining the entire decoded video."""
     if seq_length <= 0:
         raise ValueError("seq_length must be positive")
@@ -94,9 +95,13 @@ def detect_swingnet_events(video_path: Path, checkpoint_path: Path, seq_length: 
             "Install it or run with --mock-events for integration testing."
         ) from exc
 
+    check = check_cancelled or (lambda: None)
+    check()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = load_model(checkpoint_path, device)
+    check()
     probabilities = []
+    processed = 0
     # Baseline precision preserves benchmark/deterministic/matmul settings.
     # The stricter fp32() policy belongs to the opt-in refinement path.
     with closing(iter_video_frames(video_path)) as frames, torch.no_grad(), torch.backends.cudnn.flags(
@@ -106,12 +111,26 @@ def detect_swingnet_events(video_path: Path, checkpoint_path: Path, seq_length: 
         deterministic=torch.backends.cudnn.deterministic,
         allow_tf32=False,
     ):
-        prepared = (prepare_swingnet_frame(frame) for frame in frames)
+        def prepare_frames():
+            while True:
+                check()
+                frame = next(frames, None)
+                if frame is None:
+                    return
+                yield prepare_swingnet_frame(frame)
+
+        prepared = prepare_frames()
         while batch := list(islice(prepared, seq_length)):
+            check()
             images = normalized(batch)
             # Preserve the legacy channels-last frame layout and its numerics.
             logits = model(images[None].to(device))
             probabilities.append(logits.softmax(dim=1).cpu().numpy())
+            processed += len(batch)
+            check()
+            if on_progress is not None:
+                on_progress(processed)
     if not probabilities:
         raise RuntimeError(f"SwingNet produced no probabilities for {video_path}")
+    check()
     return select_event_frames(np.concatenate(probabilities), selection, missing_events)

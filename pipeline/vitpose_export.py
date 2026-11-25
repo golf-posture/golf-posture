@@ -4,7 +4,7 @@ Run once, in the environment that already has mmpose (outputs/golfpose/venv):
     outputs/golfpose/venv/Scripts/python.exe pipeline/vitpose_export.py \
         --config outputs/golfpose/golfpose_person_ViTPose_huge_full.py \
         --checkpoint outputs/golfpose/golfpose_person_ViTPose_huge_clean.pth \
-        --output outputs/golfpose/vitpose_huge.ts
+        --output models/golfpose/vitpose_huge.ts
 
 The exported module takes (N, 3, 256, 192) float BGR 0..255 crops (vitpose_runtime.model_input) and returns the
 flip-test averaged heatmaps (N, 17, 64, 48). It does the BGR->RGB conversion, normalisation and the flip test

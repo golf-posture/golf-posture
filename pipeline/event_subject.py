@@ -3,9 +3,11 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 
 
-def track_people(detections):
+def track_people(detections, *, check_cancelled=None):
+    check = check_cancelled or (lambda: None)
     tracks = []
     for t, frame in enumerate(detections):
+        check()
         boxes = np.asarray(frame["boxes"], dtype=float).reshape(-1, 4)
         active = [i for i, tr in enumerate(tracks) if t - tr[-1][0] <= 5]
         costs = np.full((len(active), len(boxes)), 100., dtype=float)
@@ -33,11 +35,14 @@ def track_people(detections):
     return tracks
 
 
-def select_golfer(detections, width, height):
+def select_golfer(detections, width, height, *, check_cancelled=None):
+    check = check_cancelled or (lambda: None)
+    check()
     count = len(detections)
-    tracks = track_people(detections)
+    tracks = track_people(detections, check_cancelled=check)
     ranking = []
     for i, tr in enumerate(tracks):
+        check()
         boxes = np.asarray([v["box"] for _, v in tr])
         points = np.asarray([v["points"] for _, v in tr])
         body = float(np.median(boxes[:, 3] - boxes[:, 1]))
@@ -59,6 +64,7 @@ def select_golfer(detections, width, height):
                         "full_body_fraction": full_fraction, "body_height": body,
                         "wrist_excursion": excursion, "eligible": bool(eligible)})
     ranking.sort(key=lambda r: r["score"], reverse=True)
+    check()
     points = np.full((count, 17, 3), np.nan, np.float32)
     points[:, :, 2] = 0
     boxes = np.full((count, 4), np.nan, np.float32)
@@ -72,6 +78,7 @@ def select_golfer(detections, width, height):
         detail["reason"] = "similar_subject_scores"
         return points, boxes, detail
     for t, v in tracks[best["track"]]:
+        check()
         points[t] = v["points"]
         boxes[t] = v["box"]
     detail.update(accepted=True, reason="persistent_full_body_scale_and_motion", selected_track=best["track"])

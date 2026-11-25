@@ -23,7 +23,7 @@ if not __package__:
 from pipeline.event_selection import gate_event_frames, ordered_event_frames
 # Re-export existing entry points for experiment scripts and callers.
 from pipeline.pose_refiner import ALL_EVENTS, parse_events
-from pipeline.pose_source import refiner_from_options
+from pipeline.pose_source import DEFAULT_VITPOSE, refiner_from_options
 from pipeline.swingnet import SampleVideo, detect_swingnet_events, prepare_swingnet_frame
 from pipeline.video_io import read_video_frame
 
@@ -183,7 +183,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--vitpose-model",
-        default="outputs/golfpose/vitpose_huge.ts",
+        default=str(DEFAULT_VITPOSE),
         help="Exported ViTPose-H TorchScript file for --pose-refiner golfpose.",
     )
     parser.add_argument(
@@ -1222,18 +1222,14 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         try:
             from pipeline.user_tracking import analyze_user_video
 
-            active_events = [i for i, frame in enumerate(event_frames) if frame is not None]
-            tracked_events = {}
             refiner, refiner_note = refiner_from_options(
                 getattr(args, "pose_refiner", "none"), Path(getattr(args, "vitpose_model", "")))
             refine_events = getattr(args, "pose_refiner_events", ALL_EVENTS)
             if refiner_note:
                 result["pose_refiner"] = {**refiner_note, "events": sorted(refine_events)}
-            if active_events:
-                tracked_events = dict(zip(active_events, analyze_user_video(
-                    video_path, [int(event_frames[i]) for i in active_events], args.handedness,
-                    refiner=refiner, refine_events=refine_events,
-                )))
+            tracked_events = analyze_user_video(
+                video_path, event_frames, args.handedness, refiner=refiner, refine_events=refine_events,
+            )
         except Exception as exc:
             result["errors"].append(f"Tracked pose extraction failed: {type(exc).__name__}: {exc}")
             return result, 1
@@ -1374,6 +1370,12 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
     result["pose_backend_comparison"]["selection_reason"] = reason
 
     motion_stats = load_optional_stats(Path(args.motion_stats))
+    evaluate_swing_motion(result, motion_stats, dynamics_stats)
+    return result, 0
+
+
+def evaluate_swing_motion(result, motion_stats, dynamics_stats):
+    """Grade landmark motion and consecutive event changes for CLI and mobile feedback."""
     result["motion_metrics"] = evaluate_motion_metrics(
         landmarks_by_event_from_result(result["events"], EVENT_NAMES),
         motion_stats,
@@ -1390,8 +1392,6 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
             start_features, end_features, start_idx, end_idx, dynamics_stats
         )
     result["dynamics"] = dynamics
-
-    return result, 0
 
 
 def main() -> int:

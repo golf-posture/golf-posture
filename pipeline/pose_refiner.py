@@ -138,6 +138,8 @@ def refine_frames(
     radius: int = DEFAULT_RADIUS,
     enabled_events: frozenset[int] = ALL_EVENTS,
     joints: frozenset[str] = ARM_JOINTS,
+    *,
+    check_cancelled=None,
 ) -> RefineResult:
     """Overlay the models' joints around the enabled events; on any source error keep the original frames."""
     original = list(frames)
@@ -145,9 +147,18 @@ def refine_frames(
     requests = request_frames(event_frames, window, radius, enabled_events)
     if not requests:
         return RefineResult(original, "skipped", 0)
-    try:
-        answers = source.joints(video_path, requests)
-    except Exception as error:  # a model failure must never fail the analysis
-        return RefineResult(original, f"failed: {type(error).__name__}: {error}", 0)
+    # Allow the mobile job to stop between model batches, outside the fallback handler.
+    items = sorted(requests.items())
+    batch_size = 5 if check_cancelled is not None else len(items)
+    answers = {}
+    for start in range(0, len(items), batch_size):
+        if check_cancelled is not None:
+            check_cancelled()
+        try:
+            answers.update(source.joints(video_path, dict(items[start:start + batch_size])))
+        except Exception as error:
+            return RefineResult(original, f"failed: {type(error).__name__}: {error}", 0)
+    if check_cancelled is not None:
+        check_cancelled()
     merged, applied = _overlay(original, answers, start_frame, joints)
     return RefineResult(merged, "ok", len(applied), applied)

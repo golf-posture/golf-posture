@@ -8,11 +8,12 @@
 |---|---|---|
 | 패키지 환경 | Python 3.12 + [`pixi.toml`](../pixi.toml) / `pixi.lock`의 패키지 | 있음 |
 | 이벤트 검출 가중치 | `event_detection/models/swingnet_1800.pth.tar` (63MB) | 없음 (직접 준비) |
-| 골퍼 검출 가중치 | `yolov8x-pose.pt` (139MB), 저장소 루트 | 없음 (처음 쓸 때 자동 다운로드) |
-| 팔 관절 모델 | `outputs/golfpose/vitpose_huge.ts` (2.55GB) | 없음 (따로 배포) |
+| 기본 골퍼 추적 가중치 | 저장소 루트의 `yolov8n-pose.pt` (앱 API의 골퍼 선택·관절 관측) | 없음 ([준비 방법](../README.md#빠른-시작)) |
+| 골퍼 검출 가중치 | `models/golfpose/yolov8x-pose.pt` (139MB) | 없음 (별도 배치) |
+| 팔 관절 모델 | `models/golfpose/vitpose_huge.ts` (2.55GB) | 없음 (따로 배포) |
 | 기준 통계 | `data/*.json`, `data/refined/*.json` | 있음 |
 
-`--pose-refiner golfpose`를 쓰지 않으면(기본값) 세 번째 모델 파일(`vitpose_huge.ts`)과 `yolov8x-pose.pt`는 필요하지 않습니다. 켜는 경우에도 모델이 없거나 실패하면 분석은 실패하지 않고 MediaPipe 결과로 돌아가며, 이유는 결과 JSON의 `pose_refiner` 항목에 남습니다.
+앱 API는 자동 분석과 재계산 때 `models/golfpose/`에서 두 가중치를 읽습니다. CLI에서는 `--pose-refiner golfpose`를 선택할 때 사용합니다. 앱에서 가중치가 누락되거나 보정이 실패하면 MediaPipe 결과를 사용하고 `result.feedback.meta.pose_refiner`에 이유를 기록합니다.
 
 ## 1. 패키지 환경
 
@@ -28,6 +29,8 @@
 | mediapipe | ==0.10.21 (PyPI) | 자세 추적의 뼈대 |
 | ultralytics | >=8.4.60, <9 (확인: 8.4.60) | 골퍼 검출(YOLOv8x-pose), Finish 팔 관절 |
 | imageio-ffmpeg | ==0.6.0 (PyPI) | 영상 입출력 |
+| ffmpeg | >=8, <9 | API에서 ffprobe로 업로드 영상 검사 |
+| fastapi, uvicorn, python-multipart | `pixi.lock`에 고정 | 분석 API 실행과 영상 업로드 |
 | pytest, pytest-cov | 8.x, 5.x | 테스트용 |
 | libgles, libegl | 리눅스에서만 | mediapipe가 요구 |
 
@@ -47,8 +50,8 @@
 | 파일 | 크기 | 용도 | 준비 방법 |
 |---|---|---|---|
 | `event_detection/models/swingnet_1800.pth.tar` | 63MB | 이벤트 8개 검출(SwingNet) | [GolfDB 원본 저장소](https://github.com/wmcnally/golfdb)의 공개 체크포인트. 폴더가 없으면 만듭니다 |
-| `yolov8x-pose.pt` | 139MB | 골퍼 박스와 Finish 팔 관절 | `ultralytics`가 처음 쓸 때 내려받음(**인터넷 필요**). 서버가 폐쇄망이면 미리 저장소 루트에 두세요 |
-| `outputs/golfpose/vitpose_huge.ts` | 2.55GB | ViTPose-H(TorchScript) | 개발 PC에서 만든 파일을 서버에 복사. 만드는 법은 [`vitpose_server.md`](vitpose_server.md)와 `pipeline/vitpose_export.py`(mmpose 환경에서 한 번만) |
+| `models/golfpose/yolov8x-pose.pt` | 139MB | 골퍼 박스와 Finish 팔 관절 | `SnapshotModel.zip`의 파일을 배치 |
+| `models/golfpose/vitpose_huge.ts` | 2.55GB | ViTPose-H(TorchScript) | 개발 PC에서 만든 파일을 서버에 복사. 만드는 법은 [`vitpose_server.md`](vitpose_server.md)와 `pipeline/vitpose_export.py`(mmpose 환경에서 한 번만) |
 | `event_detection/models/mobilenet_v2.pth.tar` | 14MB | SwingNet 학습 때만 | **운영에 필요 없음** |
 
 ### 체크섬 (2026-11-24, 개발 PC 기준)
@@ -61,9 +64,9 @@
 | `swingnet_1800.pth.tar` | 63,280,059 | `6331e303a9e86d0c19f183899f958bf2a71cf5a7070d46899e25e1ac877b23d4` |
 | `yolov8x-pose.pt` | 139,420,105 | `7a9bf952c2fc1c07d4a1da00dbb4cfab5ed71f89cbe8824d51a8f7a61cee5825` |
 
-`yolov8x-pose.pt`는 ultralytics가 자동으로 내려받는 파일이라 ultralytics 버전에 따라 새 버전이 받아질 수 있고, 그러면 값이 다를 수 있습니다. 값이 달라도 모델이 정상 동작하면 문제는 아니며, 동일 결과가 필요하면 위 값의 파일을 직접 전달해 쓰세요. `vitpose_huge.ts`를 다시 내보내면(체크포인트 변경 등) 값이 바뀌므로 이 표도 갱신해야 합니다.
+`yolov8x-pose.pt`를 ultralytics에서 별도로 내려받으면 ultralytics 버전에 따라 새 버전이 받아질 수 있고, 그러면 값이 다를 수 있습니다. 값이 달라도 모델이 정상 동작하면 문제는 아니며, 동일 결과가 필요하면 위 값의 파일을 직접 전달해 쓰세요. `vitpose_huge.ts`를 다시 내보내면(체크포인트 변경 등) 값이 바뀌므로 이 표도 갱신해야 합니다.
 
-다른 경로에 두면 `--checkpoint`, `--vitpose-model`로 지정합니다. `yolov8x-pose.pt`의 경로는 `pipeline/golfer_detection.py`의 `YOLO_DEFAULT_WEIGHTS`(저장소 루트 기준 상대 경로)입니다.
+CLI에서 SwingNet과 ViTPose-H의 경로를 바꿀 때는 각각 `--checkpoint`, `--vitpose-model`을 사용합니다. YOLOv8x의 기본 경로는 `pipeline/golfer_detection.py`의 `YOLO_DEFAULT_WEIGHTS`에 지정돼 있습니다.
 
 ## 3. 기준 데이터 (Git에 포함)
 

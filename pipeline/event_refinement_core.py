@@ -7,20 +7,30 @@ OFFSETS = np.array([-16, -8, -4, -2, 0, 2, 4, 8, 16])
 REFINED = [0, 1, 2, 3, 7]
 
 
-def centered_scores(model, features, device="cpu", batch_size=32):
+def centered_scores(model, features, device="cpu", batch_size=32, *, on_progress=None, check_cancelled=None):
+    check = check_cancelled or (lambda: None)
+    check()
     n = len(features)
     length = min(n, 64)
     starts = np.maximum(0, np.minimum(np.arange(n) - 32, n - length))
     unique = np.unique(starts)
     scores = np.zeros((n, 9), dtype=np.float32)
+    processed = 0
     for first in range(0, len(unique), batch_size):
+        check()
         part = unique[first:first + batch_size]
         x = torch.stack([features[s:s + length] for s in part]).to(device)
         hidden = model.init_hidden(len(part), device)
+        check()
         y, _ = model.rnn(x, hidden)
         y = model.lin(y).softmax(-1).cpu().numpy()
+        check()
         frames = np.flatnonzero((starts >= part[0]) & (starts <= part[-1]))
         scores[frames] = y[np.searchsorted(part, starts[frames]), frames - starts[frames]]
+        processed += len(frames)
+        if on_progress:
+            on_progress(processed)
+        check()
     assert np.isfinite(scores).all() and np.allclose(scores.sum(1), 1, atol=2e-5)
     return scores
 
@@ -62,12 +72,16 @@ def candidates(base, n, event):
     return np.arange(base[4]) if event < 4 else np.arange(base[6] + 1, n)
 
 
-def predict_one(centered, points, boxes, base, model):
+def predict_one(centered, points, boxes, base, model, *, check_cancelled=None):
+    check = check_cancelled or (lambda: None)
+    check()
     x = features(centered, points, boxes, base, True)
+    check()
     scores = np.zeros((len(centered), 8), float)
     for event in [4, 5, 6]:
         scores[base[event], event] = 1.
     for event in REFINED:
+        check()
         allowed = candidates(base, len(centered), event)
         fit = model["events"][str(event)]
         z = (x[allowed] - np.asarray(fit["mean"])) / np.asarray(fit["scale"])
@@ -75,6 +89,8 @@ def predict_one(centered, points, boxes, base, model):
         if model["residual"]:
             logits += np.log(np.maximum(centered[allowed, event], 1e-7))
         scores[allowed, event] = np.exp(np.maximum(logits - logits.max(), -100))
+    check()
     predicted = ordered_event_frames(scores)
+    check()
     assert predicted[4:7] == list(base[4:7]) and np.all(np.diff(predicted) > 0)
     return predicted, scores

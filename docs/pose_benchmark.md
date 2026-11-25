@@ -274,7 +274,7 @@ GolfPose-2D(ICPR 2024, `MingHanLee/GolfPose`)의 `person` 체크포인트를 같
 
 ```powershell
 # 1. pixi: 라벨된 프레임의 골퍼 박스 (YOLOv8x)
-pixi run --locked python -m pipeline.golfpose_boxes --yolo-weights yolov8x-pose.pt --output outputs/golfpose/boxes.json
+pixi run --locked python -m pipeline.golfpose_boxes --yolo-weights models/golfpose/yolov8x-pose.pt --output outputs/golfpose/boxes.json
 # 2. venv: GolfPose 추론 -> 예측 캐시
 outputs/golfpose/venv/Scripts/python.exe pipeline/golfpose_infer.py --device cuda:0 --config outputs/golfpose/golfpose_person_ViTPose_huge_full.py --checkpoint outputs/golfpose/golfpose_person_ViTPose_huge_clean.pth --output outputs/golfpose/pred_golfpose_vitpose_gpu.json
 # 3. pixi: 캐시 채점
@@ -345,7 +345,7 @@ c2 대비(95% CI): 전체 **-14.1%p [-18.0, -10.8]**, Top -40.7%p [-52.7, -29.5]
 # 새 모델로 팔 관절을 덮어쓰고(이벤트 8개 전부), 새 기준 통계로 채점
 pixi run --locked python -m pipeline.run_analysis --video <영상.mp4> --pose-refiner golfpose --reference refined
 # 일부 이벤트만: --pose-refiner-events Top,Finish   (이름 또는 0-7 번호, 기본 all)
-# 모델 파일: --vitpose-model outputs/golfpose/vitpose_huge.ts
+# 모델 파일: --vitpose-model models/golfpose/vitpose_huge.ts
 ```
 
 - MediaPipe 추적이 뼈대입니다(3D 좌표, 다른 랜드마크, 시간 QC). 각 이벤트 ±2프레임에서 **어깨·팔꿈치·손목의 2D 위치와 점수만** 새 모델 값으로 바꿉니다. 엉덩이는 엉덩이 라벨로 검증한 적이 없어서 MediaPipe 값을 그대로 씁니다.

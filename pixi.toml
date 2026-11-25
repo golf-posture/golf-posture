@@ -3,6 +3,9 @@ name = "golf-posture"
 channels = ["conda-forge", "pytorch"]
 platforms = ["linux-64", "win-64"]
 
+[tasks]
+start = "python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --workers 1"
+
 [dependencies]
 python = "3.12.*"
 numpy = ">=1.26.0,<2"
@@ -13,11 +16,16 @@ pytorch = "*"
 torchvision = "*"
 pytest = ">=8.0,<9"
 pytest-cov = ">=5.0,<6"
+ffmpeg = ">=8,<9"
 
 [pypi-dependencies]
 mediapipe = "==0.10.21"
 ultralytics = ">=8.4.60, <9"
 imageio-ffmpeg = "==0.6.0"
+fastapi = ">=0.115, <1"
+uvicorn = ">=0.30, <1"
+python-multipart = ">=0.0.20, <1"
+httpx = ">=0.28, <1"
 
 [target.linux-64.dependencies]
 libgles = ">=1.7.0,<2"

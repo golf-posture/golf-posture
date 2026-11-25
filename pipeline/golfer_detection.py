@@ -15,7 +15,7 @@ YOLO_JOINT_INDEX = {
     "LEFT_WRIST": 9, "RIGHT_WRIST": 10, "LEFT_HIP": 11, "RIGHT_HIP": 12,
 }
 YOLO_TORSO = (5, 6, 11, 12)
-YOLO_DEFAULT_WEIGHTS = Path("yolov8x-pose.pt")
+YOLO_DEFAULT_WEIGHTS = Path("models/golfpose/yolov8x-pose.pt")
 YOLO_BATCH = 8
 YOLO_IMAGE_SIZE = 640
 YOLO_MIN_CONFIDENCE = 0.25
