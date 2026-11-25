@@ -15,6 +15,7 @@ writes a prediction cache of every frame in boxes.json, to be scored by pose_ben
 from __future__ import annotations
 
 import argparse
+from functools import lru_cache
 import json
 import sys
 from pathlib import Path
@@ -34,7 +35,7 @@ from pipeline.golfpose_joints import golfpose_joints, predictions_payload
 from pipeline.pose_refiner import MODEL_VITPOSE, MODEL_YOLOX
 from pipeline.vitpose_runtime import crop_for_model, model_input, predict_keypoints
 
-DEFAULT_VITPOSE = Path("outputs/golfpose/vitpose_huge.ts")
+DEFAULT_VITPOSE = Path("models/golfpose/vitpose_huge.ts")
 VITPOSE_BATCH = 5
 
 Detection = tuple[Sequence[float], Sequence[Sequence[float]]]  # golfer box xyxy, COCO-17 (x, y, conf)
@@ -158,6 +159,12 @@ def default_device() -> str:
     return "cuda:0" if torch.cuda.is_available() else "cpu"
 
 
+@lru_cache(maxsize=1)
+def _vitpose_network(path: Path, device: str) -> VitposeNetwork:
+    # Only the TorchScript weights live across requests. YOLO predictors retain their last input batch.
+    return VitposeNetwork(path, device)
+
+
 def load_golfpose_source(
     vitpose_path: Path = DEFAULT_VITPOSE,
     yolo_weights: Path = YOLO_DEFAULT_WEIGHTS,
@@ -166,7 +173,7 @@ def load_golfpose_source(
 ) -> GolfPoseSource:
     device = device or default_device()
     return GolfPoseSource(read_video_frames, YoloGolferDetector(yolo_weights, device),
-                          VitposeNetwork(vitpose_path, device), batch_size=batch_size)
+                          _vitpose_network(vitpose_path, device), batch_size=batch_size)
 
 
 def refiner_from_options(mode: str, vitpose_path: Path) -> tuple[Optional[GolfPoseSource], dict[str, str]]:

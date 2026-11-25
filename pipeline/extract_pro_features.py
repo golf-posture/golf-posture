@@ -20,7 +20,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Extract raw pro pose features from GolfDB slice videos.")
     parser.add_argument(
         "--videos-dir",
-        default=r"C:\Users\zzang\Desktop\workspace\Python\golf\src\golfdb-master\learning_video\golfdb_720p_slice",
+        default="../src/golfdb-master/learning_video/golfdb_720p_slice",
         help="Directory containing GolfDB slice videos named <id>.mp4.",
     )
     parser.add_argument(

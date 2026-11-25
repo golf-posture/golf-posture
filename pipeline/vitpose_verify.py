@@ -1,7 +1,7 @@
 """Check that the exported ViTPose-H gives the same keypoints as the mmpose run it came from.
 
 Needs only torch, OpenCV and numpy (no mmpose):
-    python pipeline/vitpose_verify.py --model outputs/golfpose/vitpose_huge.ts \
+    python pipeline/vitpose_verify.py --model models/golfpose/vitpose_huge.ts \
         --boxes outputs/golfpose/boxes.json \
         --reference outputs/golfpose/pred_golfpose_vitpose_gpu.json \
         --output outputs/golfpose/pred_vitpose_ts.json

@@ -6,7 +6,7 @@ GolfPose ViTPose-H(`person`)를 서버에서 쓰기 위한 실행 방법입니�
 
 | 항목 | 위치 | 비고 |
 |---|---|---|
-| 모델 파일 `vitpose_huge.ts` | `outputs/golfpose/` (Git 제외) | 2.55GB, 서버에 따로 배포해야 합니다 |
+| 모델 파일 `vitpose_huge.ts` | `models/golfpose/` (Git 제외) | 2.55GB, 서버에 따로 배포해야 합니다 |
 | 전처리·후처리 | `pipeline/vitpose_runtime.py` | numpy와 OpenCV만 사용 (mmpose 1.3.2 코드를 옮김, Apache-2.0) |
 | 내보내기 | `pipeline/vitpose_export.py` | mmpose 환경에서 **한 번만** 실행. 체크포인트가 바뀔 때만 다시 |
 | 동등성 검증 | `pipeline/vitpose_verify.py` | mmpose 없이 실행. 서버에서 설치 확인용으로 씁니다 |
@@ -25,7 +25,7 @@ GolfPose ViTPose-H(`person`)를 서버에서 쓰기 위한 실행 방법입니�
 기준 예측 캐시와 박스 파일(`outputs/golfpose/pred_golfpose_vitpose_gpu.json`, `boxes.json`)과 라벨 영상이 있는 환경에서:
 
 ```powershell
-python pipeline/vitpose_verify.py --model outputs/golfpose/vitpose_huge.ts `
+python pipeline/vitpose_verify.py --model models/golfpose/vitpose_huge.ts `
     --reference outputs/golfpose/pred_golfpose_vitpose_gpu.json --device cuda:0
 ```
 

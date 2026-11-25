@@ -1,0 +1,1 @@
+"""Local event-detection API."""

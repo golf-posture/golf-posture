@@ -31,6 +31,7 @@ from pipeline.pose_refiner import ALL_EVENTS, PoseSource, refine_frames
 from pipeline.qc_temporal import ELBOW_ANGLE_FLOOR_DEG, arm_jump, elbow_angle_floor, jump_threshold
 from pipeline.qc_tracked_features import ARMS, arm_flags, refined_arm_flags
 from pipeline.run_analysis import REQUIRED_FEATURES, video_frame_count
+from pipeline.side_correction import correct_arm_sides
 
 EXPECTED_EVENTS = 8  # a refiner needs the full event list: the position in it is the event index
 TRACK_WARMUP_FRAMES = 10
@@ -119,10 +120,13 @@ def _with_refiner_status(events: list[dict[str, Any]], status: str) -> list[dict
 
 def analyze_user_video(
     video_path: Path,
-    event_frames: Sequence[int],
+    event_frames: Sequence[int | None],
     handedness: str,
     refiner: PoseSource | None = None,
     refine_events: frozenset[int] = ALL_EVENTS,
+    *,
+    check_cancelled=None,
+    legacy_fallback: bool = False,
 ) -> list[dict[str, Any]]:
     """Tracked per-event features and QC; with a `refiner`, arm joints around the events come from better models.
 
@@ -130,18 +134,29 @@ def analyze_user_video(
     the refiner is skipped (the event numbers would be wrong, and Finish uses a different model), and the
     reason is recorded in qc["pose_refiner"], which is only present when a refiner was given.
     """
-    start, last = tracking_window(event_frames, video_frame_count(video_path))
-    frames = extract_tracked_frames(video_path, last, start_frame=start)
+    available = [frame for frame in event_frames if frame is not None]
+    if not available:
+        events = build_user_events([], [-1] * len(event_frames), (0, 0), handedness)
+        return events if refiner is None else _with_refiner_status(events, "skipped: missing event frames")
+    start, last = tracking_window(available, video_frame_count(video_path))
+    cancel_option = {"check_cancelled": check_cancelled} if check_cancelled is not None else {}
+    frames = extract_tracked_frames(video_path, last, start_frame=start, **cancel_option)
     status = None
     refined_indices: frozenset[int] = frozenset()
     if refiner is not None:
-        if len(event_frames) == EXPECTED_EVENTS:
-            refined = refine_frames(frames, start, video_path, dict(enumerate(event_frames)), refiner,
-                                    enabled_events=refine_events)
+        if len(event_frames) == EXPECTED_EVENTS and len(available) == EXPECTED_EVENTS:
+            refined = refine_frames(frames, start, video_path, dict(enumerate(available)), refiner,
+                                    enabled_events=refine_events, check_cancelled=check_cancelled)
             frames, status = refined.frames, refined.status
             refined_indices = frozenset(frame - start for frame in refined.refined_frames)
         else:
-            status = f"skipped: expected {EXPECTED_EVENTS} events, got {len(event_frames)}"
-    indices = [frame - start for frame in event_frames]
+            status = f"skipped: expected {EXPECTED_EVENTS} events, got {len(available)}"
+    indices = [frame - start if frame is not None else -1 for frame in event_frames]
+    if legacy_fallback and not refined_indices:
+        frames, _ = correct_arm_sides(frames, indices, handedness)
     events = build_user_events(frames, indices, video_size(video_path), handedness, refined_indices)
-    return events if status is None else _with_refiner_status(events, status)
+    if status is not None:
+        for event, frame in zip(events, indices, strict=True):
+            event["qc"].update(pose_refiner=status, refined_frames=len(refined_indices),
+                               refined_event=frame in refined_indices)
+    return events

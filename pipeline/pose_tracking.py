@@ -130,6 +130,8 @@ def extract_tracked_frames(
     complexity: int = 1,
     start_frame: int = 0,
     crop: tuple[int, int, int, int] | None = None,
+    *,
+    check_cancelled=None,
 ) -> list[FrameJoints | None]:
     """Track frames start_frame..last_frame sequentially; list index i is video frame start_frame + i.
 
@@ -143,6 +145,8 @@ def extract_tracked_frames(
     frames: list[FrameJoints | None] = []
     try:
         for _ in range(last_frame - start_frame + 1):
+            if check_cancelled is not None:
+                check_cancelled()
             ok, bgr = cap.read()
             if not ok:
                 break
