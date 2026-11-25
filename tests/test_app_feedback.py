@@ -72,12 +72,31 @@ def _dynamics(data, pair, feature, z, grade="Needs Improvement", reliability="hi
 
 # ---- scoring -------------------------------------------------------------------------------------
 def test_item_score_is_piecewise_linear_through_the_anchor_points():
-    assert [item_score(z) for z in (0, 1, 2, 3, 4)] == [100, 85, 50, 15, 0]
-    assert item_score(0.5) == pytest.approx(92.5)
-    assert item_score(1.5) == pytest.approx(67.5)
+    assert [item_score(z) for z in (0, 1, 2, 3, 4)] == [100, 100, 50, 15, 0]
+    assert item_score(1.5) == pytest.approx(75)
     assert item_score(-2.5) == pytest.approx(32.5)            # sign does not matter
     assert item_score(9.0) == 0
-    assert score_from_severity(1.0) == 85                     # inside the pro range stays high
+
+
+def test_everything_inside_the_pro_range_is_full_marks():
+    assert all(item_score(z) == 100 for z in (0, 0.3, 0.7, 0.99, 1.0))
+    assert item_score(1.01) < 100                              # the penalty starts right outside the range
+
+
+def test_a_clean_pro_swing_scores_high_even_when_items_sit_anywhere_inside_the_range():
+    data = _data()
+    for event in data["events"].values():
+        event["feedback"] = {f: _fb("Excellent", z) for f, z in zip(FEATURES, (0.95, -0.9, 0.8, -0.7, 0.99))}
+    assert build_app_payload(data)["summary"]["posture_score"] >= 98
+
+
+def test_items_just_outside_the_range_lower_the_score_without_making_a_card():
+    data = _data()
+    for event in data["events"].values():
+        event["feedback"] = {f: _fb("Good", 1.5) for f in FEATURES}                # "Good": no card, but 75 points
+    payload = build_app_payload(data)
+    assert payload["issues"] == []
+    assert 70 <= payload["summary"]["posture_score"] <= 80
 
 
 def test_status_rules():
@@ -89,7 +108,7 @@ def test_status_rules():
 
 def test_combined_percentile_maps_onto_the_same_scale():
     assert percentile_to_score(0) == pytest.approx(100)
-    assert percentile_to_score(68.27) == pytest.approx(85, abs=0.5)     # like |z| = 1
+    assert percentile_to_score(68.27) == pytest.approx(100, abs=0.5)    # like |z| = 1: inside the pro range
     assert percentile_to_score(95.45) == pytest.approx(50, abs=0.5)     # like |z| = 2
     assert percentile_to_score(99.99) < 15
 
@@ -122,7 +141,7 @@ def test_angle_card_has_title_subtitle_detail_and_image_of_worst_event():
     assert _texts(card, "check")[0] == "임팩트 직전에 팔이 너무 일찍 곧게 펴지지 않는지 확인해 보세요."
     assert [b["step"] for b in card["body"] if b["kind"] == "drill"] == [1, 2, 3]
     assert _texts(card, "drill")[1] == "클럽 없이 천천히 스윙하며 임팩트에서 멈추고, 팔꿈치에 약간 여유가 있는 모양인지 확인해요."
-    assert _texts(card, "goal") == ["다음 촬영에서는 먼저 68점 이상('한 번 더 확인' 단계)을 목표로 해 보세요. 85점 이상이면 프로 범위 안이에요."]
+    assert _texts(card, "goal") == ["다음 촬영에서는 먼저 68점 이상('한 번 더 확인' 단계)을 목표로 해 보세요. 프로 범위 안에 들어오면 100점이에요."]
 
 
 def test_cards_are_sorted_by_score_lowest_first_and_ranks_are_sequential():
@@ -400,20 +419,20 @@ def test_every_praise_kind_has_its_own_keep_tip():
 
 
 def test_score_level_wording_follows_the_score():
-    assert app_feedback._score_level(98).startswith("프로 중앙값과 거의")
-    assert app_feedback._score_level(92).startswith("프로 분포의 한가운데")
-    assert app_feedback._score_level(86).startswith("프로 범위 안에서")
+    assert app_feedback._score_level(0.1).startswith("프로 중앙값과 거의")
+    assert app_feedback._score_level(0.5).startswith("프로 분포의 한가운데")
+    assert app_feedback._score_level(0.9).startswith("프로 범위 안에서")
 
 
-def test_stable_part_praise_names_the_best_and_weakest_event():
+def test_stable_part_praise_names_the_best_and_the_closest_to_the_edge():
     data = _data()
     data["events"]["Impact"]["feedback"]["spine_tilt"] = _fb("Excellent", 0.9)      # still inside the pro range
     data["events"]["Top"]["feedback"]["spine_tilt"] = _fb("Excellent", 0.0)
     card = _praise(build_app_payload(data), "stable_spine")
     detail = next(b["text"] for b in card["body"] if b["kind"] == "detail")
-    assert detail == f"가장 안정적인 구간은 탑(100점)이고, 가장 낮은 구간도 임팩트에서 {score_from_severity(0.9)}점이에요."
-    even = _praise(build_app_payload(_data()), "stable_spine")
-    assert next(b["text"] for b in even["body"] if b["kind"] == "detail").startswith("평가된 구간이")
+    assert detail == "가장 안정적인 구간은 탑이고, 프로 범위 가장자리에 가장 가까운 구간은 임팩트예요. 모두 범위 안이에요."
+    assert card["score"] == 100                                       # inside the pro range = full marks
+    assert next(b["text"] for b in card["body"] if b["kind"] == "score").endswith("모든 이벤트에서 100점이에요.")
 
 
 def test_praise_cautions_only_where_they_apply():
@@ -579,7 +598,7 @@ def test_goal_follows_the_score_band():
     severe = build_app_payload(_motion_problem(_data(), "head_movement", 3.0))["issues"][0]
     assert _texts(severe, "goal")[0].startswith("다음 촬영에서는 먼저 68점 이상('한 번 더 확인' 단계)을 목표로")
     middle = build_app_payload(_motion_problem(_data(), "head_movement", 2.0, direction="high"))["issues"][0]
-    assert middle["score"] == 50 and _texts(middle, "goal")[0].startswith("다음 촬영에서는 85점 이상(프로 범위 안)을 목표로")
+    assert middle["score"] == 50 and _texts(middle, "goal")[0].startswith("다음 촬영에서는 프로 범위 안(100점)을 목표로")
     mild = build_app_payload(_motion_problem(_data(), "head_movement", 1.2))["issues"][0]
     assert _texts(mild, "goal")[0].startswith("프로 범위에 가까워요.")
 
