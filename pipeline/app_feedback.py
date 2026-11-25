@@ -10,7 +10,7 @@ Where the cards come from (one pool, one score, one ordering):
   * motion metrics   -> one card per metric (weight shift, shoulder turn, ...)
   * swing dynamics   -> merged into the body part's card (change between two events)
 Scores (all 0-100, one scale):
-  * item score   : piecewise-linear on |z| (SCORE_POINTS) -- gentle inside the pro range, steep outside
+  * item score   : piecewise-linear on |z| (SCORE_POINTS) -- full marks inside the pro range, steep outside
   * card score   : item score of the card's worst item (lowest score first)
   * event score  : reliability-weighted mean of the item scores that belong to the event
                    (and, in parallel, a score from the Mahalanobis combined score of that event)
@@ -44,9 +44,10 @@ SCHEMA_VERSION = 3
 MAX_ISSUES = 5            # issue cards on the "자세 진단" tab; fewer if fewer qualify, never padded
 MAX_PRAISE = 12           # cards on the "잘한 점" tab (4 body parts + 7 motion metrics + tempo = every possible card)
 
-# Item score: piecewise-linear on |z| (구간 선형).  Inside the pro range (|z| <= 1) it stays 85+,
-# "Needs Improvement" (|z| > 2) is below 50, and it reaches 0 at |z| = 4.
-SCORE_POINTS = ((0.0, 100.0), (1.0, 85.0), (2.0, 50.0), (3.0, 15.0), (4.0, 0.0))
+# Item score: piecewise-linear on |z| (구간 선형).  Everything inside the pro range (|z| <= 1) is full marks:
+# a normal pro swing has items anywhere in that range, so a sloped top would hand even a pro video ~85.
+# Outside the range it falls steeply: "Needs Improvement" (|z| > 2) is below 50 and it reaches 0 at |z| = 4.
+SCORE_POINTS = ((0.0, 100.0), (1.0, 100.0), (2.0, 50.0), (3.0, 15.0), (4.0, 0.0))
 STATUS_CUTS = (50, 68)    # score < 50 priority, < 68 adjust, else recheck (temporary cut points)
 
 # How much one item counts inside its event's score (a missing item is left out, never scored 0).
@@ -197,10 +198,12 @@ def _particle_eul(word: str) -> str:
     return "을" if 0xAC00 <= code <= 0xD7A3 and (code - 0xAC00) % 28 != 0 else "를"
 
 
-def _score_level(score: int) -> str:
-    if score >= 95:
+def _score_level(severity: float) -> str:
+    """Wording by distance from the pro median (|z|); the score itself is flat inside the pro range."""
+    z = abs(float(severity))
+    if z <= 1 / 3:
         return "프로 중앙값과 거의 같은 수준이에요."
-    if score >= 90:
+    if z <= 2 / 3:
         return "프로 분포의 한가운데에 가까워요."
     return "프로 범위 안에서 안정적이에요."
 
@@ -530,11 +533,11 @@ REPEAT_STEP = "5회 반복한 뒤 스윙을 다시 촬영해 점수가 올랐는
 
 def _goal_text(score: int, extra: str = "") -> str:
     low, mid = STATUS_CUTS
-    pro = int(round(item_score(1.0)))
+    pro = int(round(item_score(1.0)))          # score of an item that is inside the pro range
     if score < low:
-        base = f"다음 촬영에서는 먼저 {mid}점 이상('한 번 더 확인' 단계)을 목표로 해 보세요. {pro}점 이상이면 프로 범위 안이에요."
+        base = f"다음 촬영에서는 먼저 {mid}점 이상('한 번 더 확인' 단계)을 목표로 해 보세요. 프로 범위 안에 들어오면 {pro}점이에요."
     elif score < mid:
-        base = f"다음 촬영에서는 {pro}점 이상(프로 범위 안)을 목표로 해 보세요."
+        base = f"다음 촬영에서는 프로 범위 안({pro}점)을 목표로 해 보세요."
     else:
         base = "프로 범위에 가까워요. 다음 촬영에서도 같은 결과가 나오는지 확인해 보세요."
     return f"{base} {extra}".strip()
@@ -764,7 +767,7 @@ def _motion_candidates(motion: dict[str, Any], handedness: str | None = None) ->
             sentence = text["up" if up else "ok"].format(**fmt)
             score = score_from_severity(max(0.0, penalty))
             body = _praise_body(
-                name, f"{noun} 점수가 {score}점으로, {_score_level(score)}", _motion_evidence(item), sentence,
+                name, f"{noun} 점수가 {score}점으로, {_score_level(penalty)}", _motion_evidence(item), sentence,
                 caution=ROTATION_CAUTION if up and name in ROTATION_METRICS else "")
             praise.append({"id": name, "severity": max(0.0, penalty), "event": event, "title": f"{EVENT_UI[event]} {noun}",
                            "subtitle": sentence, "kind": "motion", "body": body})
@@ -785,16 +788,16 @@ def _stable_praise(records: list[dict[str, Any]], blocked: set[str]) -> list[dic
             sentence = f"어드레스부터 피니시까지 {label}가 일정하게 유지돼요."
             low = score_from_severity(worst)
             worst_row = max(scored, key=lambda r: abs(r["z"])) if scored else best
-            best_score = score_from_severity(abs(best["z"])) if scored else None
+            # Inside the pro range every item scores the same, so the story is told by distance from the median.
             if not scored:
                 detail = ""
-            elif best_score - low <= 3 or best["event"] == worst_row["event"]:
-                detail = f"평가된 구간이 {low}~{best_score}점으로 고르게 안정적이에요."
+            elif best["event"] == worst_row["event"]:
+                detail = "평가된 구간이 모두 프로 범위 안에서 고르게 안정적이에요."
             else:
-                detail = (f"가장 안정적인 구간은 {EVENT_UI[best['event']]}({best_score}점)이고, "
-                          f"가장 낮은 구간도 {EVENT_UI[worst_row['event']]}에서 {low}점이에요.")
+                detail = (f"가장 안정적인 구간은 {EVENT_UI[best['event']]}이고, 프로 범위 가장자리에 가장 가까운 구간은 "
+                          f"{EVENT_UI[worst_row['event']]}예요. 모두 범위 안이에요.")
             body = _praise_body(
-                f"stable_{fam_name}", f"{label} 점수가 평가된 모든 이벤트에서 {low}점 이상이에요.",
+                f"stable_{fam_name}", f"{label} 점수가 평가된 모든 이벤트에서 {low}점이에요.",
                 f"평가된 {len(rows)}개 항목이 모두 프로 범위 안이에요.", sentence, detail=detail,
                 caution=CAMERA_CAUTION if fam_name in ("shoulder_tilt", "hip_tilt") else "")
             cards.append({"id": f"stable_{fam_name}", "severity": worst, "event": best["event"], "title": f"{label} 안정",
