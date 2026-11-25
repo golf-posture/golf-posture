@@ -106,30 +106,37 @@ def arm_by_feature(handedness: str) -> dict[str, tuple[str, str, str]]:
 
 
 # ------------------------------------------------------------------ extraction
-def frame_joints(result: Any, width: int, height: int) -> FrameJoints | None:
+def frame_joints(
+    result: Any, width: int, height: int, offset: tuple[float, float] = (0.0, 0.0)
+) -> FrameJoints | None:
+    """Joints of one MediaPipe result; pixels are scaled to width x height then shifted by `offset`.
+
+    `offset` is the crop's top-left corner in the original frame, so pixel coordinates stay in original frame
+    pixels even when MediaPipe ran on a crop. World coordinates are metric and never shifted.
+    """
     if not result.pose_landmarks or not result.pose_world_landmarks:
         return None
     joints: FrameJoints = {}
     for name in JOINT_NAMES:
         idx = LANDMARK_NAMES[name]
         lm, wl = result.pose_landmarks.landmark[idx], result.pose_world_landmarks.landmark[idx]
-        joints[name] = (lm.x * width, lm.y * height, lm.visibility, wl.x, wl.y, wl.z)
+        joints[name] = (lm.x * width + offset[0], lm.y * height + offset[1], lm.visibility, wl.x, wl.y, wl.z)
     return joints
 
 
 def extract_tracked_frames(
-    video_path: Path, last_frame: int, complexity: int = 1, start_frame: int = 0
+    video_path: Path,
+    last_frame: int,
+    complexity: int = 1,
+    start_frame: int = 0,
+    crop: tuple[int, int, int, int] | None = None,
 ) -> list[FrameJoints | None]:
-    """Track frames start_frame..last_frame sequentially; list index i is video frame start_frame + i."""
-    import mediapipe as mp
+    """Track frames start_frame..last_frame sequentially; list index i is video frame start_frame + i.
 
-    pose = mp.solutions.pose.Pose(
-        static_image_mode=False,
-        model_complexity=complexity,
-        smooth_landmarks=True,
-        min_detection_confidence=0.5,
-        min_tracking_confidence=0.5,
-    )
+    `crop` is (left, top, right, bottom) in original pixels: MediaPipe sees only that region, and the returned
+    pixel coordinates are mapped back to the original frame.
+    """
+    pose = _new_pose(complexity)
     cap = cv2.VideoCapture(str(video_path))
     if start_frame > 0:
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
@@ -139,9 +146,76 @@ def extract_tracked_frames(
             ok, bgr = cap.read()
             if not ok:
                 break
-            height, width = bgr.shape[:2]
-            frames.append(frame_joints(pose.process(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)), width, height))
+            frames.append(_joints_of(pose, bgr, crop))
     finally:
         pose.close()
         cap.release()
+    return frames
+
+
+def _new_pose(complexity: int) -> Any:
+    import mediapipe as mp
+
+    return mp.solutions.pose.Pose(
+        static_image_mode=False,
+        model_complexity=complexity,
+        smooth_landmarks=True,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5,
+    )
+
+
+def _joints_of(pose: Any, bgr: Any, crop: tuple[int, int, int, int] | None) -> FrameJoints | None:
+    """Run the tracker on one BGR frame (optionally cropped); pixels come back in original-frame coordinates."""
+    offset = (0.0, 0.0)
+    if crop is not None:
+        left, top, right, bottom = crop
+        bgr, offset = bgr[top:bottom, left:right], (float(left), float(top))
+    height, width = bgr.shape[:2]
+    return frame_joints(pose.process(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)), width, height, offset)
+
+
+REVERSE_CHUNK = 16
+
+
+def frame_chunks(start_frame: int, last_frame: int, size: int, reverse: bool) -> list[tuple[int, int]]:
+    """Inclusive (first, last) ranges of at most `size` frames covering start..last, last-first when reversed."""
+    chunks = [(first, min(first + size - 1, last_frame)) for first in range(start_frame, last_frame + 1, size)]
+    return chunks[::-1] if reverse else chunks
+
+
+def extract_tracked_frames_reversed(
+    video_path: Path,
+    last_frame: int,
+    complexity: int = 1,
+    start_frame: int = 0,
+    crop: tuple[int, int, int, int] | None = None,
+) -> list[FrameJoints | None]:
+    """Like extract_tracked_frames, but the tracker runs from last_frame back to start_frame.
+
+    The result is still ordered forward (list index i is video frame start_frame + i). Frames are decoded in
+    chunks read last-to-first, so only REVERSE_CHUNK frames are held in memory at a time.
+    """
+    pose = _new_pose(complexity)
+    cap = cv2.VideoCapture(str(video_path))
+    found: dict[int, FrameJoints | None] = {}
+    try:
+        for first, end in frame_chunks(start_frame, last_frame, REVERSE_CHUNK, reverse=True):
+            cap.set(cv2.CAP_PROP_POS_FRAMES, first)
+            chunk = []
+            for _ in range(end - first + 1):
+                ok, bgr = cap.read()
+                if not ok:
+                    break
+                chunk.append(bgr)
+            for index in range(first + len(chunk) - 1, first - 1, -1):
+                found[index] = _joints_of(pose, chunk[index - first], crop)
+    finally:
+        pose.close()
+        cap.release()
+    frames: list[FrameJoints | None] = []
+    for index in range(start_frame, last_frame + 1):
+        if index not in found:
+            break
+        frames.append(found[index])
     return frames

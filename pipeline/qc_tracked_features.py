@@ -25,6 +25,7 @@ import pandas as pd
 from pipeline.compute_reliability_stats import circular_delta, circular_mean
 
 LOW_VIS_THRESHOLD = 0.4
+REFINED_LOW_VIS_THRESHOLD = 0.3  # for arms measured by the pose refiner, see refined_arm_flags
 BONE_RATIO_RANGE = (0.5, 2.0)
 MIN_BONE_3D = 0.1
 MAX_2D_3D_DIFF_DEG = 60.0
@@ -103,11 +104,38 @@ def arm_flags(row: Mapping[str, Any], arm: str) -> dict[str, bool]:
     }
 
 
+def refined_arm_flags(row: Mapping[str, Any], arm: str) -> dict[str, bool]:
+    """arm_flags for an arm whose 2D joints were replaced by the pose refiner (pose_refiner.py).
+
+    `bone` and `inconsistent` read MediaPipe's 3D world coordinates, which the refiner leaves untouched, so on a
+    refined arm they report MediaPipe's own failure rather than the new 2D arm's. On 743 hand-labelled arms
+    (50 videos, docs/pose_benchmark.md) they discarded 34 correct refined arms, 20 of which MediaPipe had wrong
+    (current rules on refined arms: caught 10/35 wrong, discarded 44/708 correct). The model's score does not
+    separate wrong from correct arms (median 0.75 vs 0.78), so the visibility floor drops to
+    REFINED_LOW_VIS_THRESHOLD, where it costs one correct arm and catches one wrong one.
+    """
+    flags = arm_flags(row, arm)
+    if row.get(f"{arm}_elbow_source") == "missing":
+        return flags
+    min_vis = _num(row.get(f"{arm}_min_vis"))
+    return {
+        **flags,
+        "low_vis": bool(min_vis is not None and min_vis < REFINED_LOW_VIS_THRESHOLD),
+        "bone": False,
+        "inconsistent": False,
+    }
+
+
 # --------------------------------------------------------------------- table
 def build_qc_table(tracked: pd.DataFrame) -> pd.DataFrame:
     qc = tracked[["video_id", "event_index"]].copy()
+    records = tracked.to_dict("records")
     for arm in ARMS:
-        flags = pd.DataFrame([arm_flags(row, arm) for row in tracked.to_dict("records")], index=tracked.index)
+        # rows whose arm joints came from the pose refiner (a `refined` column) follow refined_arm_flags
+        flags = pd.DataFrame(
+            [(refined_arm_flags if str(row.get("refined")) == "True" else arm_flags)(row, arm) for row in records],
+            index=tracked.index,
+        )
         for name in ARM_FLAGS:
             qc[f"{arm}_flag_{name}"] = flags[name]
     for column in OUTLIER_COLUMNS:

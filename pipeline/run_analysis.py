@@ -22,6 +22,8 @@ if not __package__:
 
 from pipeline.event_selection import gate_event_frames, ordered_event_frames
 # Re-export existing entry points for experiment scripts and callers.
+from pipeline.pose_refiner import ALL_EVENTS, parse_events
+from pipeline.pose_source import refiner_from_options
 from pipeline.swingnet import SampleVideo, detect_swingnet_events, prepare_swingnet_frame
 from pipeline.video_io import read_video_frame
 
@@ -129,12 +131,14 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--reference",
-        choices=["legacy", "tracked"],
+        choices=["legacy", "tracked", "refined"],
         default="legacy",
         help=(
             "Which pro reference statistics to grade against. legacy: data/*.json (the original reference). "
             "tracked: data/tracked/*.json, rebuilt from QC-cleaned tracked pro data (narrower spreads, "
-            "so grading is stricter). Independent of --extraction."
+            "so grading is stricter). refined: data/refined/*.json, the same pro videos measured with the "
+            "pose refiner (ViTPose-H / YOLOv8x arms); meant for use with --pose-refiner golfpose. "
+            "Independent of --extraction."
         ),
     )
     parser.add_argument(
@@ -161,6 +165,27 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument("--handedness", choices=["right", "left"], default="right")
+    parser.add_argument(
+        "--pose-refiner",
+        choices=["none", "golfpose"],
+        default="none",
+        help=(
+            "Replace the tracked MediaPipe arm joints around the swing events with ViTPose-H (YOLOv8x at Finish). "
+            "none: unchanged. Needs --extraction tracked and all 8 events; if a model cannot run, the MediaPipe "
+            "result is kept and qc.pose_refiner records why. See docs/vitpose_server.md."
+        ),
+    )
+    parser.add_argument(
+        "--pose-refiner-events",
+        type=parse_events,
+        default="all",
+        help="Events the refiner covers: all, numbers 0-7 or names, comma separated (e.g. Top,Finish).",
+    )
+    parser.add_argument(
+        "--vitpose-model",
+        default="outputs/golfpose/vitpose_huge.ts",
+        help="Exported ViTPose-H TorchScript file for --pose-refiner golfpose.",
+    )
     parser.add_argument(
         "--pose-backend",
         choices=["mediapipe", "yolopose", "auto", "hybrid"],
@@ -275,7 +300,9 @@ def load_optional_stats(path: Path) -> dict[str, Any] | None:
 
 
 TRACKED_STATS_DIR = "data/tracked"
+REFINED_STATS_DIR = "data/refined"
 LEGACY_STATS_DIR = "data"
+STATS_DIRS = {"legacy": LEGACY_STATS_DIR, "tracked": TRACKED_STATS_DIR, "refined": REFINED_STATS_DIR}
 
 
 def effective_extraction(requested: str, pose_backend: str) -> tuple[str, str | None]:
@@ -289,15 +316,14 @@ def effective_extraction(requested: str, pose_backend: str) -> tuple[str, str | 
 
 
 def resolve_stats_path(value: str | None, reference: str, filename: str) -> Path:
-    """Explicit path wins; otherwise the chosen reference set ('legacy' or 'tracked') decides the directory.
+    """Explicit path wins; otherwise the chosen reference set ('legacy', 'tracked' or 'refined') decides the directory.
 
     The reference set is independent of the extraction mode: how user features are extracted does not
     change which pro statistics they are graded against.
     """
     if value:
         return Path(value)
-    directory = TRACKED_STATS_DIR if reference == "tracked" else LEGACY_STATS_DIR
-    return Path(directory) / filename
+    return Path(STATS_DIRS.get(reference, LEGACY_STATS_DIR)) / filename
 
 
 def video_frame_count(video_path: Path) -> int:
@@ -1184,11 +1210,11 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
 
     sequence_stats = load_optional_stats(Path(args.sequence_stats))
     result["sequence_features"] = evaluate_sequence_features(event_frames, sequence_stats)
-    if args.reference == "tracked" and not reliability_stats_path.exists():
+    if args.reference in ("tracked", "refined") and not reliability_stats_path.exists():
         result["errors"].append(
-            f"Tracked reference stats not found: {reliability_stats_path}. Build them with "
-            "documents/feedback_v2_work_log_2026-10-13.md (section 'tracked 기준 통계 생성'), "
-            "or run with --reference legacy."
+            f"{args.reference.capitalize()} reference stats not found: {reliability_stats_path}. Build them with "
+            "documents/feedback_v2_work_log_2026-10-13.md (section 'tracked 기준 통계 생성'; for refined see "
+            "docs/pose_benchmark.md), or run with --reference legacy."
         )
 
     tracked_events = None
@@ -1198,9 +1224,15 @@ def run(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
 
             active_events = [i for i, frame in enumerate(event_frames) if frame is not None]
             tracked_events = {}
+            refiner, refiner_note = refiner_from_options(
+                getattr(args, "pose_refiner", "none"), Path(getattr(args, "vitpose_model", "")))
+            refine_events = getattr(args, "pose_refiner_events", ALL_EVENTS)
+            if refiner_note:
+                result["pose_refiner"] = {**refiner_note, "events": sorted(refine_events)}
             if active_events:
                 tracked_events = dict(zip(active_events, analyze_user_video(
-                    video_path, [int(event_frames[i]) for i in active_events], args.handedness
+                    video_path, [int(event_frames[i]) for i in active_events], args.handedness,
+                    refiner=refiner, refine_events=refine_events,
                 )))
         except Exception as exc:
             result["errors"].append(f"Tracked pose extraction failed: {type(exc).__name__}: {exc}")

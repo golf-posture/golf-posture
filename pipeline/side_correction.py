@@ -1,5 +1,9 @@
 """Event-specific left/right correction of the tracked arm joints (Top and Finish only).
 
+NOT applied by the analysis any more (user_tracking measures the sides the model reports). It stays for the pose
+benchmark (`--side-correction`, `--side-rule`), which documents the evidence below. The pose refiner's models get
+the sides right more often without it (wrong arms on 98 labelled videos: Top 15 vs 16, Finish 14 vs 17 with it).
+
 At Top (arms overhead, torso turned) and Finish the pose model often reports the golfer's right and left arms
 the wrong way round, so the trail and lead elbow angles are swapped. On hand-labelled frames the golfer's trail
 shoulder was the higher one on screen in 45/45 Top frames and 43/47 Finish frames (right-handers), while the
